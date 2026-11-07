@@ -1,0 +1,22 @@
+{
+  "ticket": {
+    "id": 48305,
+    "created_at": "2026-10-08T01:00:00Z",
+    "subject": "Password reset",
+    "description": "Can't log in to the student portal, password reset email not arriving. Please help.",
+    "status": "new",
+    "priority": null,
+    "tags": [
+      "account"
+    ],
+    "via": {
+      "channel": "web"
+    },
+    "requester": {
+      "name": "Arjun Menon",
+      "external_id": "TP071877",
+      "email": "tp071877@student.uni.example"
+    },
+    "group": "Student Services Helpdesk"
+  }
+}

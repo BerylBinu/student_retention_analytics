@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "CT046-3-2 Cloud Infrastructure",
+  "forum": "Lab Help",
+  "discussion": {
+    "id": 7734,
+    "name": "Missed lab 6 again"
+  },
+  "post": {
+    "id": 77341,
+    "userid": "TP071234",
+    "userfullname": "Aisyah Rahman",
+    "created": 1792778700,
+    "subject": "Missed lab 6 again",
+    "message": "<p>Sorry I missed lab 6 and 7, work shifts clash with Tuesday labs. Can someone share the notes? Honestly I'm so tired I'm falling behind on everything.</p>",
+    "messageformat": 1
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "source": "campus_assistant_bot",
+  "session": "cb-55120",
+  "locale": "en-MY",
+  "messages": [
+    {
+      "from": "student",
+      "ts": "2026-10-19T03:20:00+08:00",
+      "text": "can i get an extension for all my assignments",
+      "sid": "TP070455"
+    },
+    {
+      "from": "bot",
+      "ts": "2026-10-19T03:20:40+08:00",
+      "text": "Extensions are handled by your module lecturer. Would you like the EC form link?"
+    },
+    {
+      "from": "student",
+      "ts": "2026-10-19T03:21:20+08:00",
+      "text": "i guess. i can't focus anymore, i just stare at the screen for hours and nothing happens",
+      "sid": "TP070455"
+    },
+    {
+      "from": "bot",
+      "ts": "2026-10-19T03:22:00+08:00",
+      "text": "Here is the Extenuating Circumstances form: [link]. Is there anything else?"
+    },
+    {
+      "from": "student",
+      "ts": "2026-10-19T03:22:40+08:00",
+      "text": "no",
+      "sid": "TP070455"
+    }
+  ]
+}

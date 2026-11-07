@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Software Engineering",
+  "forum": "Find a group",
+  "discussion": {
+    "id": 7801,
+    "name": "Found a group, thank you!"
+  },
+  "post": {
+    "id": 78010,
+    "userid": "TP072210",
+    "userfullname": "Chen Wei",
+    "created": 1793872800,
+    "subject": "Found a group, thank you!",
+    "message": "<p>Thank you to the peer mentor programme, I joined the Chinese students' society and found a group for SE. Feeling much better now.</p>",
+    "messageformat": 1
+  }
+}

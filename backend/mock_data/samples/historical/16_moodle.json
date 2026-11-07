@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Database Systems",
+  "forum": "Attendance",
+  "discussion": {
+    "id": 7742,
+    "name": "Attendance below 80%"
+  },
+  "post": {
+    "id": 77420,
+    "userid": "TP067321",
+    "userfullname": "Daniel Wong",
+    "created": 1793062200,
+    "subject": "Attendance below 80%",
+    "message": "<p>Got the warning email that my attendance is 72%. The KTM delays are killing me. Is there any online option?</p>",
+    "messageformat": 1
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Computer Networks",
+  "forum": "Recordings",
+  "discussion": {
+    "id": 7745,
+    "name": "Are lectures recorded?"
+  },
+  "post": {
+    "id": 77455,
+    "userid": "TP072876",
+    "userfullname": "Kevin Raj",
+    "created": 1793278800,
+    "subject": "Are lectures recorded?",
+    "message": "<p>Missed the last two online lectures due to connection issues. Are the recordings uploaded somewhere?</p>",
+    "messageformat": 1
+  }
+}

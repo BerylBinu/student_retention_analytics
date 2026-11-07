@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Student Retention Analytics Engine - serverless data pipeline.
+  Raw unstructured files land in S3 (incoming/), S3 notifies an SQS queue,
+  a Lambda function sends each message to Gemini for structured risk analysis,
+  and the results are stored in DynamoDB (plus a curated copy in S3).
+  A second Lambda behind an HTTP API serves the data to the Next.js dashboard.
+
+# ---------------------------------------------------------------------------
+# Parameters: values you can change at deploy time without editing this file.
+# ---------------------------------------------------------------------------
+Parameters:
+  GeminiModel:
+    Type: String
+    Default: gemini-3.1-flash-lite
+    Description: Gemini model code used for analysis (for example gemini-3.1-flash-lite or gemini-3.8-flash).
+
+  GeminiApiKeyParameterName:
+    Type: String
+    Default: /retention/gemini-api-key
+    AllowedPattern: "^/.*"
+    Description: Name of the SSM Parameter Store SecureString that holds your Gemini API key. Must start with a slash.
+
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: Which website may call the API from a browser (CORS). "*" allows any site; later set it to your deployed frontend URL.
+
+# ---------------------------------------------------------------------------
+# Globals: settings shared by every Lambda function below.
+# ---------------------------------------------------------------------------
+Globals:
+  Function:
+    Runtime: python3.13
+    Architectures:
+      - arm64
+    MemorySize: 256
+    Tags:
+      project: student-retention-analytics
+
+Resources:
+  # -------------------------------------------------------------------------
+  # 1. DATA LAKE BUCKET
+  #    incoming/  -> raw files (Zendesk, Moodle, emails). Uploads here start the pipeline.
+  #    curated/   -> cleaned, structured JSON written by the processor (not re-processed).
+  # -------------------------------------------------------------------------
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: IngestQueuePolicy # S3 checks it may send to the queue before saving the notification
+    Properties:
+      BucketName: !Sub "student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt IngestQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: incoming/
+
+  # -------------------------------------------------------------------------
+  # 2. QUEUE BETWEEN S3 AND LAMBDA
+  #    Buffers uploads so 50 files at once do not hit Gemini 50 times at once
+  #    (which causes 429 rate-limit errors). Failed messages retry 3 times,
+  #    then move to the dead-letter queue (DLQ) for inspection.
+  # -------------------------------------------------------------------------
+  IngestDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  IngestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 720 # 6 x the processor timeout, as AWS recommends
+      MessageRetentionPeriod: 345600 # 4 days
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt IngestDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  IngestQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref IngestQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowS3ToSendUploadEvents
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt IngestQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:s3:::student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+  # -------------------------------------------------------------------------
+  # 3. DATABASE
+  #    One row per analysed message. On-demand billing = no capacity to manage.
+  # -------------------------------------------------------------------------
+  InsightsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: record_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: record_id
+          KeyType: HASH
+
+  # -------------------------------------------------------------------------
+  # 4. PROCESSOR LAMBDA (the AI step)
+  # -------------------------------------------------------------------------
+  ProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Reads raw files from S3, asks Gemini for structured risk insights, saves to DynamoDB.
+      CodeUri: src/processor/
+      Handler: app.lambda_handler
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InsightsTable
+          GEMINI_MODEL: !Ref GeminiModel
+          GEMINI_API_KEY_PARAM: !Ref GeminiApiKeyParameterName
+          CURATED_PREFIX: curated/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InsightsTable
+        - S3CrudPolicy:
+            BucketName: !Sub "student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+        - Statement:
+            - Sid: ReadGeminiKey
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GeminiApiKeyParameterName}"
+            - Sid: DecryptGeminiKey
+              Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub "ssm.${AWS::Region}.amazonaws.com"
+      Events:
+        FromIngestQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt IngestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+            ScalingConfig:
+              MaximumConcurrency: 2 # at most 2 Gemini calls in parallel (stays under free-tier limits)
+
+  # -------------------------------------------------------------------------
+  # 5. DASHBOARD API (what the Next.js frontend calls)
+  # -------------------------------------------------------------------------
+  DashboardApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - content-type
+        MaxAge: 600
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Serves dashboard data from DynamoDB and accepts live demo messages.
+      CodeUri: src/api/
+      Handler: app.lambda_handler
+      Timeout: 15
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InsightsTable
+          DATA_BUCKET: !Sub "student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+          INGEST_PREFIX: incoming/live/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref InsightsTable
+        - S3WritePolicy:
+            BucketName: !Sub "student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+      Events:
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /health
+            Method: GET
+        ListInsights:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /insights
+            Method: GET
+        ListStudents:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /students
+            Method: GET
+        GetStudent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /students/{student_id}
+            Method: GET
+        GetStats:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /stats
+            Method: GET
+        Ingest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DashboardApi
+            Path: /ingest
+            Method: POST
+
+# ---------------------------------------------------------------------------
+# Outputs: printed after deploy. Copy ApiBaseUrl to the frontend team.
+# ---------------------------------------------------------------------------
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL for the dashboard API (give this to the frontend as NEXT_PUBLIC_API_BASE_URL)
+    Value: !Sub "https://${DashboardApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  DataLakeBucketName:
+    Description: Upload raw files to s3://<this bucket>/incoming/ to start the pipeline
+    Value: !Ref DataLakeBucket
+  InsightsTableName:
+    Description: DynamoDB table holding the structured Gemini results
+    Value: !Ref InsightsTable
+  ProcessorFunctionName:
+    Description: Lambda that calls Gemini (check its logs if results do not appear)
+    Value: !Ref ProcessorFunction
+  DeadLetterQueueUrl:
+    Description: Messages that failed 3 times end up here
+    Value: !Ref IngestDeadLetterQueue

@@ -1,0 +1,20 @@
+# SAM build output
+.aws-sam/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets - never commit API keys or AWS credentials
+.env
+.env.*
+*.pem
+credentials
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

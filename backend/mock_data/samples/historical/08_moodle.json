@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Software Engineering",
+  "forum": "Find a group",
+  "discussion": {
+    "id": 7701,
+    "name": "Still looking for group members"
+  },
+  "post": {
+    "id": 77015,
+    "userid": "TP072210",
+    "userfullname": "Chen Wei",
+    "created": 1791374400,
+    "subject": "Still looking for group members",
+    "message": "<p>Hi everyone, I am still looking for a group for the SE assignment. Groups were formed in week 1 but I joined late because of visa delay. Anyone?</p>",
+    "messageformat": 1
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "ticket": {
+    "id": 48377,
+    "created_at": "2026-10-09T23:55:00Z",
+    "subject": "Hostel water heater + noise",
+    "description": "Water heater in block B room 12-3 broken for 2 weeks and the unit next door has parties until 3am. I've moved out to my aunt's place in Klang, now it's 2 hours by train each way so I keep missing 8:30 classes.",
+    "status": "new",
+    "priority": null,
+    "tags": [
+      "hostel",
+      "facilities"
+    ],
+    "via": {
+      "channel": "web"
+    },
+    "requester": {
+      "name": "Daniel Wong",
+      "external_id": "TP067321",
+      "email": "tp067321@student.uni.example"
+    },
+    "group": "Student Services Helpdesk"
+  }
+}

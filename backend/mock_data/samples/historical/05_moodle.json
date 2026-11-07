@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "AAPP Java Programming",
+  "forum": "Assignment Q&A",
+  "discussion": {
+    "id": 7710,
+    "name": "Late submission?"
+  },
+  "post": {
+    "id": 77102,
+    "userid": "TP068812",
+    "userfullname": "Jason Lim Wei Han",
+    "created": 1791557280,
+    "subject": "Late submission?",
+    "message": "<p>is there any penalty waiver if laptop broke? I've been doing code on my phone lol. submitting 2 days late probably</p>",
+    "messageformat": 1
+  }
+}

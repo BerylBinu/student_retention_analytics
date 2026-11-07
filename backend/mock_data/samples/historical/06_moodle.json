@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Research Methods for Computing",
+  "forum": "General",
+  "discussion": {
+    "id": 7698,
+    "name": "How do people manage 3 deadlines in one week?"
+  },
+  "post": {
+    "id": 76988,
+    "userid": "TP070455",
+    "userfullname": "Priya Nair",
+    "created": 1791047520,
+    "subject": "How do people manage 3 deadlines in one week?",
+    "message": "<p>I have FYP proposal, DSA assignment and the networking report all due the same week. I've been sleeping 3-4 hours. Any tips?</p>",
+    "messageformat": 1
+  }
+}

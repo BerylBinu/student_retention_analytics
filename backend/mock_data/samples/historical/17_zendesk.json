@@ -1,0 +1,22 @@
+{
+  "ticket": {
+    "id": 48402,
+    "created_at": "2026-10-16T08:20:00Z",
+    "subject": "Midterm result query",
+    "description": "I got 31% for the Discrete Maths midterm. I studied but I just don't get it. What happens if I fail this module, do I have to repeat the whole semester?",
+    "status": "new",
+    "priority": null,
+    "tags": [
+      "academic"
+    ],
+    "via": {
+      "channel": "web"
+    },
+    "requester": {
+      "name": "Farah Aziz",
+      "external_id": "TP070002",
+      "email": "tp070002@student.uni.example"
+    },
+    "group": "Student Services Helpdesk"
+  }
+}

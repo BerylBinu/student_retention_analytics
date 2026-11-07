@@ -1,0 +1,12 @@
+From: "Farah Aziz" <tp070002@student.uni.example>
+To: registry@uni.example
+Date: Fri, 30 Oct 2026 22:15:00 +0800
+Subject: Withdrawal deadline
+X-Student-ID: TP070002
+
+Hi,
+
+What is the last date to withdraw from the programme without paying next semester's fees?
+I'm thinking maybe computing is not for me. My parents don't know yet.
+
+Farah

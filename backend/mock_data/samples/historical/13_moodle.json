@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Data Analytics",
+  "forum": "General",
+  "discussion": {
+    "id": 7721,
+    "name": "Thank you for the Tableau workshop!"
+  },
+  "post": {
+    "id": 77210,
+    "userid": "TP073014",
+    "userfullname": "Sarah Tan Mei Ling",
+    "created": 1792057500,
+    "subject": "Thank you for the Tableau workshop!",
+    "message": "<p>Just wanted to say the workshop on Saturday was amazing. Our club is going to use it for the hackathon. Loving this module :)</p>",
+    "messageformat": 1
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "ticket": {
+    "id": 48290,
+    "created_at": "2026-10-06T06:30:00Z",
+    "subject": "Laptop died - need loaner",
+    "description": "my laptop motherboard is dead, repair shop says RM1200 and 2 weeks. do you guys have loaner laptops? I have a Java assignment due friday and can't install the IDE on the library PCs",
+    "status": "new",
+    "priority": null,
+    "tags": [
+      "it-support",
+      "hardware"
+    ],
+    "via": {
+      "channel": "web"
+    },
+    "requester": {
+      "name": "Jason Lim Wei Han",
+      "external_id": "TP068812",
+      "email": "tp068812@student.uni.example"
+    },
+    "group": "Student Services Helpdesk"
+  }
+}
