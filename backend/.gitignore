@@ -1,6 +1,10 @@
 # SAM build output
 .aws-sam/
 
+# May contain your Gemini key in plain text if you used the GeminiApiKey deploy parameter
+# (the SSM-blocked-account workaround) instead of SSM Parameter Store. Never commit this.
+samconfig.toml
+
 # Python
 __pycache__/
 *.pyc

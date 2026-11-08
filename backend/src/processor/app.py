@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 import urllib.error
 import urllib.request
@@ -43,6 +44,11 @@ MAX_TEXT_CHARS = 12_000      # text sent to Gemini per message
 MAX_STORED_TEXT = 4_000      # raw text kept in DynamoDB for the counselor to read
 GEMINI_ATTEMPTS = 3
 GEMINI_TIMEOUT_SECONDS = 30
+# Free-tier rate limiting. Each Lambda copy spends at least this many seconds per Gemini call,
+# so 2 copies x (60 / 9s) = ~13 calls per minute, under the free tier's 15 per minute.
+# On a paid Gemini plan, set MIN_SECONDS_PER_CALL to 0 in template.yaml.
+MIN_SECONDS_PER_CALL = float(os.environ.get("MIN_SECONDS_PER_CALL", "9"))
+MAX_RATE_LIMIT_WAIT = 65  # longest we wait when Gemini says "retry in Ns"
 
 s3 = boto3.client("s3")
 ssm = boto3.client("ssm")
@@ -190,7 +196,9 @@ def process_object(bucket, key, event_time):
 
     for index, message_text in enumerate(messages):
         record_id = make_record_id(bucket, key, index)
+        started = time.monotonic()
         analysis = call_gemini(message_text[:MAX_TEXT_CHARS])
+        pace(started)
         item = build_item(record_id, bucket, key, event_time, message_text, analysis)
         save_item(bucket, item)
         logger.info(
@@ -232,8 +240,9 @@ def get_api_key():
     global _api_key_cache
     if _api_key_cache:
         return _api_key_cache
-    if os.environ.get("GEMINI_API_KEY"):
-        _api_key_cache = os.environ["GEMINI_API_KEY"].strip()
+    env_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if env_key:  # a blank or whitespace-only value means "not set, use SSM"
+        _api_key_cache = env_key
         return _api_key_cache
     try:
         response = ssm.get_parameter(Name=GEMINI_API_KEY_PARAM, WithDecryption=True)
@@ -269,11 +278,21 @@ def call_gemini(message_text):
             with urllib.request.urlopen(request, timeout=GEMINI_TIMEOUT_SECONDS) as response:
                 return parse_gemini_response(json.loads(response.read()))
         except urllib.error.HTTPError as error:
-            detail = error.read().decode("utf-8", errors="replace")[:600]
+            full_detail = error.read().decode("utf-8", errors="replace")[:5000]
+            detail = full_detail[:600]
+            if error.code == 429 and is_daily_quota(full_detail):
+                # Waiting a minute won't help when the whole day's quota is used up.
+                raise RuntimeError(
+                    "Gemini daily free-tier quota used up. It resets at midnight Pacific time "
+                    "(4pm Malaysia time). Details: " + detail
+                ) from error
             retryable = error.code in (429, 500, 502, 503, 504)
             if retryable and attempt < GEMINI_ATTEMPTS:
-                wait = 2 ** attempt + random.uniform(0, 1)
-                logger.warning("Gemini HTTP %s (attempt %d), retrying in %.1fs: %s", error.code, attempt, wait, detail)
+                if error.code == 429:
+                    wait = min(retry_delay_seconds(full_detail) + random.uniform(1, 3), MAX_RATE_LIMIT_WAIT)
+                else:
+                    wait = 2 ** attempt + random.uniform(0, 1)
+                logger.warning("Gemini HTTP %s (attempt %d), retrying in %.1fs", error.code, attempt, wait)
                 time.sleep(wait)
                 continue
             raise RuntimeError(explain_gemini_error(error.code, detail)) from error
@@ -285,6 +304,24 @@ def call_gemini(message_text):
                 continue
             raise RuntimeError(f"Could not reach Gemini after {GEMINI_ATTEMPTS} attempts: {error}") from error
     raise RuntimeError("Gemini call failed")  # not reached; keeps linters happy
+
+
+def pace(started):
+    """Make each Gemini call take at least MIN_SECONDS_PER_CALL so we stay under the free-tier limit."""
+    remaining = MIN_SECONDS_PER_CALL - (time.monotonic() - started)
+    if remaining > 0:
+        time.sleep(remaining)
+
+
+def retry_delay_seconds(detail):
+    """Read how long Gemini asks us to wait, from '"retryDelay": "58s"' or 'retry in 58.49s'. Default 30."""
+    match = re.search(r'"retryDelay"\s*:\s*"([\d.]+)s"', detail) or re.search(r"retry in ([\d.]+)s", detail)
+    return float(match.group(1)) if match else 30.0
+
+
+def is_daily_quota(detail):
+    lowered = detail.lower()
+    return "perday" in lowered or "per day" in lowered
 
 
 def explain_gemini_error(status, detail):

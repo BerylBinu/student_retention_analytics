@@ -4,7 +4,7 @@ This folder is the whole AWS side of the project. One command deploys it.
 The Next.js dashboard only needs the **API URL** this produces.
 
 ```
-                    ┌──────────────────────── AWS (ap-southeast-1) ─────────────────────────┐
+                    ┌──────────────────────── AWS (ap-southeast-2) ─────────────────────────┐
  Mock Zendesk /     │                                                                        │
  Moodle / email ──► │  S3 data lake          SQS queue          Processor Lambda             │
  files (upload)     │  incoming/  ───────►  (buffer +   ───────► reads file ──► Gemini API ──┼──► Google
@@ -60,8 +60,14 @@ Everyone else just uses the API URL.
 
 ### 0.1 Pick a region and set a budget alarm (5 min)
 
-We use **Asia Pacific (Singapore) `ap-southeast-1`** for everything. Using one region matters: resources
+We use **Asia Pacific (Sydney) `ap-southeast-2`** for everything. Using one region matters: resources
 in different regions can't see each other, and that's the #1 cause of "it works on my side but not in AWS".
+
+> **Why Sydney and not Singapore?** AWS accounts created with the new sign-up (Google/Gmail login, no
+> credit card) are locked to one region chosen from your contact country. Malaysia and Singapore get
+> Sydney; every other region returns `explicit deny in a service control policy`. Check yours at
+> https://settings.aws.com → **Project** → **Overview** → **Additional Info** → **Region**, and if it isn't
+> `ap-southeast-2`, use your region everywhere this README says `ap-southeast-2`.
 
 Set a budget alarm so a mistake can't cost you money silently:
 
@@ -110,7 +116,7 @@ Answer the four prompts:
 ```
 AWS Access Key ID [None]:      <Access key ID from the .csv>
 AWS Secret Access Key [None]:  <Secret access key from the .csv>
-Default region name [None]:    ap-southeast-1
+Default region name [None]:    ap-southeast-2
 Default output format [None]:  json
 ```
 
@@ -201,17 +207,28 @@ If this step fails, fix it now (see Troubleshooting); deploying won't fix a bad 
 
 ---
 
-## Part 2 — Store the Gemini key in AWS (2 min)
+## Part 2 — Give the Gemini key to AWS (2 min)
 
-**Why:** the Lambda needs the key, but keys must never be in code or GitHub. SSM Parameter Store keeps it
-encrypted (`SecureString`) and only our Lambda is allowed to read it. Standard parameters are free.
+**Why:** the Lambda needs the key, but keys must never be in code or GitHub. There are two ways;
+try A first, and use B if A gives an `AccessDeniedException ... service control policy` error.
+
+**A. SSM Parameter Store (preferred when allowed).** Encrypted storage that only our Lambda can read.
 
 ```
-aws ssm put-parameter --name "/retention/gemini-api-key" --type SecureString --value "paste-your-key-here" --region ap-southeast-1
+aws ssm put-parameter --name "/retention/gemini-api-key" --type SecureString --value "paste-your-key-here" --region ap-southeast-2
 ```
 
-Expected: `{"Version": 1, "Tier": "Standard"}`.
-To replace the key later, run the same command with `--overwrite` at the end.
+Expected: `{"Version": 1, "Tier": "Standard"}`. Then in Part 3 leave `GeminiApiKey` blank.
+
+**B. Pass the key at deploy time (for sandbox / organization accounts).** Student and event AWS accounts
+(AWS Academy, AWS Educate, accounts created without a credit card) often block SSM with a
+*service control policy*, a rule set above your account that even admin users can't override.
+If you got that error, skip the command above. In Part 3, paste your key at the `Parameter GeminiApiKey`
+prompt. It's stored as an environment variable on the processor Lambda.
+
+> Trade-off of B: anyone who can open that Lambda in the AWS console can read the key. Fine for a
+> hackathon sandbox only you use; for real use, prefer A. `samconfig.toml` may also keep the key, so it is
+> in `.gitignore`. **Never commit `samconfig.toml`.**
 
 ---
 
@@ -230,9 +247,10 @@ Answer the prompts exactly like this (press Enter to accept a value in brackets)
 | Prompt | Answer |
 |---|---|
 | Stack Name | `student-retention` |
-| AWS Region | `ap-southeast-1` |
+| AWS Region | `ap-southeast-2` |
 | Parameter GeminiModel | Enter (keeps `gemini-3.1-flash-lite`) |
 | Parameter GeminiApiKeyParameterName | Enter |
+| Parameter GeminiApiKey | Option A: just Enter (blank). Option B: paste your key (nothing shows as you paste; that's normal), then Enter |
 | Parameter AllowedOrigin | Enter (keeps `*`) |
 | Confirm changes before deploy | `y` |
 | Allow SAM CLI IAM role creation | `Y` |
@@ -252,8 +270,9 @@ aws cloudformation describe-stacks --stack-name student-retention --query "Stack
 
 You'll see `ApiBaseUrl` (for the frontend), `DataLakeBucketName`, `InsightsTableName`, and more.
 
-> `samconfig.toml` was just created. It contains no secrets (the key lives in SSM), so it is safe to
-> commit. Later deploys after code changes are just: `sam deploy`
+> `samconfig.toml` was just created and saves your answers. It is git-ignored because with option B it
+> can contain your key. Later deploys after code changes are just: `sam deploy`
+> (if it asks for `GeminiApiKey` again, paste the key again).
 
 **Quick check:** open `<ApiBaseUrl>/health` in your browser. You should see `{"status": "ok", ...}`.
 
@@ -300,12 +319,12 @@ aws s3 cp mock_data/samples/live_demo/priya_crisis.json s3://BUCKET/incoming/liv
 
 Windows PowerShell:
 ```
-Invoke-RestMethod -Method Post -Uri "https://YOUR-API-ID.execute-api.ap-southeast-1.amazonaws.com/ingest" -ContentType "application/json" -Body '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
+Invoke-RestMethod -Method Post -Uri "https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com/ingest" -ContentType "application/json" -Body '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
 ```
 
 macOS / Linux:
 ```
-curl -X POST "https://YOUR-API-ID.execute-api.ap-southeast-1.amazonaws.com/ingest" -H "Content-Type: application/json" -d '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
+curl -X POST "https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com/ingest" -H "Content-Type: application/json" -d '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
 ```
 
 About 5-15 seconds later the new row shows up in `GET /insights` and the student's risk rises in `/students`.
@@ -317,7 +336,7 @@ About 5-15 seconds later the new row shows up in `GET /insights` and the student
 Base URL = `ApiBaseUrl` from the stack outputs. In Next.js, put it in `.env.local`:
 
 ```
-NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-1.amazonaws.com
+NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com
 ```
 
 (No trailing slash. Restart `npm run dev` after editing `.env.local`.)
@@ -445,7 +464,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 | Deploy fails: `iam:CreateRole ... AccessDenied` | Restricted account (e.g. Learner Lab) | Tell the team lead; template needs the `LabRole` variant |
 | Deploy fails: bucket `already exists` | An old stack (or another teammate) in the same account/region already created it | Delete the old stack, or deploy from only one laptop |
 | Deploy fails: `ROLLBACK_COMPLETE`, can't update | First deploy failed | `sam delete --stack-name student-retention` then deploy again |
-| Logs: `Could not read the Gemini API key from SSM` | Parameter missing or in another region | `aws ssm get-parameter --name /retention/gemini-api-key --region ap-southeast-1`; redo Part 2 if it errors |
+| Any command: `explicit deny in a service control policy` | Wrong region for a new-sign-up account (see Part 0.1) | `aws configure set region ap-southeast-2`, delete `samconfig.toml`, and redeploy choosing `ap-southeast-2` |
+| Still denied for SSM in the correct region | Account blocks SSM | Use Part 2 option B (paste key at the `GeminiApiKey` prompt) |
+| Logs: `Could not read the Gemini API key from SSM` | Parameter missing or in another region | `aws ssm get-parameter --name /retention/gemini-api-key --region ap-southeast-2`; redo Part 2 if it errors |
 | Logs: `Gemini HTTP 400 ... API key not valid` | Wrong or stale key | Redo Part 2 with `--overwrite`. New Lambda containers pick it up; to force it, redeploy |
 | Logs: `Gemini HTTP 404` | Model name typo | `sam deploy --parameter-overrides GeminiModel=gemini-3.1-flash-lite` |
 | Logs: `Gemini HTTP 429` | Free-tier rate limit | Messages retry by themselves. Upload fewer files at once or wait a minute |
@@ -470,7 +491,7 @@ only runs 2 Gemini calls at a time.
 ```
 aws s3 rm s3://BUCKET --recursive
 sam delete --stack-name student-retention
-aws ssm delete-parameter --name "/retention/gemini-api-key" --region ap-southeast-1
+aws ssm delete-parameter --name "/retention/gemini-api-key" --region ap-southeast-2
 ```
 
 Then in the console: **IAM → Users → hackathon-cli → Security credentials → Deactivate/Delete** the access key.

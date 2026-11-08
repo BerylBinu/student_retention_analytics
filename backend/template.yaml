@@ -20,7 +20,22 @@ Parameters:
     Type: String
     Default: /retention/gemini-api-key
     AllowedPattern: "^/.*"
-    Description: Name of the SSM Parameter Store SecureString that holds your Gemini API key. Must start with a slash.
+    Description: >-
+      Name of an SSM Parameter Store SecureString holding your Gemini key. Only used if
+      GeminiApiKey (below) is left blank. Some organization/sandbox AWS accounts block SSM
+      Parameter Store entirely (ssm:PutParameter denied by a Service Control Policy) - if yours
+      does, ignore this and use GeminiApiKey instead.
+
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: >-
+      Paste your Gemini API key here to pass it straight to the Lambda function at deploy time.
+      Use this if your AWS account cannot create SSM parameters (common in AWS Academy, AWS
+      Educate, or other organization/event-managed accounts). Leave blank to read the key from
+      SSM Parameter Store instead (GeminiApiKeyParameterName above). NoEcho means sam deploy will
+      not print this value back to your terminal or save it in plain text in samconfig.toml.
 
   AllowedOrigin:
     Type: String
@@ -83,11 +98,11 @@ Resources:
   IngestQueue:
     Type: AWS::SQS::Queue
     Properties:
-      VisibilityTimeout: 720 # 6 x the processor timeout, as AWS recommends
+      VisibilityTimeout: 240 # must be longer than the processor timeout; a failed file is retried after this
       MessageRetentionPeriod: 345600 # 4 days
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt IngestDeadLetterQueue.Arn
-        maxReceiveCount: 3
+        maxReceiveCount: 5
 
   IngestQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -133,18 +148,26 @@ Resources:
       Description: Reads raw files from S3, asks Gemini for structured risk insights, saves to DynamoDB.
       CodeUri: src/processor/
       Handler: app.lambda_handler
-      Timeout: 120
+      Timeout: 200 # room to wait out a Gemini "retry in 60s" rate-limit reply
       Environment:
         Variables:
           TABLE_NAME: !Ref InsightsTable
           GEMINI_MODEL: !Ref GeminiModel
           GEMINI_API_KEY_PARAM: !Ref GeminiApiKeyParameterName
+          # If GeminiApiKey is left blank, this becomes an empty string, which app.py treats as
+          # "not set" and falls back to reading GeminiApiKeyParameterName from SSM instead.
+          GEMINI_API_KEY: !Ref GeminiApiKey
           CURATED_PREFIX: curated/
+          # Seconds each Gemini call must take, to stay under the free tier's 15 requests/minute.
+          # Set to "0" on a paid Gemini plan.
+          MIN_SECONDS_PER_CALL: "9"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref InsightsTable
         - S3CrudPolicy:
             BucketName: !Sub "student-retention-datalake-${AWS::AccountId}-${AWS::Region}"
+        # Grants permission to read the key from SSM too, in case your account allows SSM reads
+        # even though it blocks writes. Harmless to keep even if you use GeminiApiKey instead.
         - Statement:
             - Sid: ReadGeminiKey
               Effect: Allow

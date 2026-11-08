@@ -79,6 +79,7 @@ def load(name, relative_path):
 
 
 processor = load("processor_app", "src/processor/app.py")
+processor.MIN_SECONDS_PER_CALL = 0  # no rate-limit pacing in tests
 api = load("api_app", "src/api/app.py")
 api.DATA_BUCKET = "test-bucket"
 
@@ -142,6 +143,14 @@ class ProcessorTests(unittest.TestCase):
         self.assertEqual(processor.normalise_timestamp("1760000000"), "2025-10-09T08:53:20Z")
         self.assertEqual(processor.normalise_timestamp("2026-10-13T23:41:00+08:00"), "2026-10-13T15:41:00Z")
         self.assertEqual(processor.normalise_timestamp("not a date"), "")
+
+    def test_rate_limit_parsing(self):
+        detail = '{"error": {"code": 429, "message": "Please retry in 58.491880011s.", "details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "58s"}]}}'
+        self.assertEqual(processor.retry_delay_seconds(detail), 58.0)
+        self.assertAlmostEqual(processor.retry_delay_seconds("Please retry in 12.5s."), 12.5)
+        self.assertEqual(processor.retry_delay_seconds("no hint"), 30.0)
+        self.assertFalse(processor.is_daily_quota("requests per minute limit exceeded"))
+        self.assertTrue(processor.is_daily_quota('"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier"'))
 
     def test_parse_gemini_response(self):
         body = {"candidates": [{"content": {"parts": [{"text": '{"risk_score": 5}'}]}}]}
