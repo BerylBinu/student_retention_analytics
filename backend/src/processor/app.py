@@ -126,11 +126,29 @@ SYSTEM_PROMPT = """You are an analyst supporting university student-success coun
 You read ONE raw message written by or about a student (a support ticket, LMS forum post,
 email or chatbot log) and extract early warning signs that the student may drop out.
 
-Scoring guide for risk_score:
-- 0-29  LOW: routine request, no distress (password reset, timetable question, positive news).
-- 30-59 MEDIUM: a real problem the student is coping with (one late assignment, a broken laptop, mild worry about fees).
-- 60-79 HIGH: the problem is affecting studies (missing classes, failing, cannot pay fees, isolated for weeks, talks about quitting).
-- 80-100 CRITICAL: the student is close to leaving, in crisis, or expresses hopelessness.
+Scoring guide for risk_score. First choose the band, then use the anchors to place the
+score inside it. Use the whole range: two students with different situations should rarely get
+the same score, and do not default to round numbers like 50 or 65.
+
+LOW 0-29: no real problem.
+  0-9    routine admin or positive news (timetable question, thank-you post, booking a room).
+  10-29  a minor hassle, or venting while clearly coping (annoyed about a hard exam but passed it).
+MEDIUM 30-59: a real problem, but studies are not yet affected.
+  30-39  one small practical problem with an easy fix (asks for a lecture recording after missing one class).
+  40-49  one problem that puts a deadline at risk (laptop broke the week an assignment is due).
+  50-59  a worry with no fix yet, or two problems at once (fees due and the loan has not arrived;
+         heavy workload plus very little sleep).
+HIGH 60-79: the problem is already hurting studies or wellbeing.
+  60-64  studies affected by one practical cause that can be fixed (missing some classes because of transport).
+  65-69  studies affected and the cause is ongoing (attendance warning, failing a module,
+         working long hours to pay fees).
+  70-74  several stressors at once, or a sudden life event that pulls the student away from studies
+         (family emergency at home, isolated with no friends for weeks).
+  75-79  studies affected AND the student doubts they can continue, but does not ask about leaving.
+CRITICAL 80-100: the student is close to leaving or in crisis.
+  80-89  asks how to withdraw, defer, transfer out or stop studying, or says they will stop attending.
+         This always wins over 75-79, even when the student also says the course is not for them.
+  90-100 hopelessness, crisis, or any sign of self-harm.
 
 Rules:
 - Pick the primary_stressor that best explains the risk. Use NONE only when there is no stressor.
