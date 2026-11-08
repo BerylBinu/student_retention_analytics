@@ -1,0 +1,2892 @@
+{
+  "summary": {
+    "run_at": "2026-11-08T15:11:22",
+    "model": "gemini-3.1-flash-lite",
+    "cases": 28,
+    "runs": 3,
+    "scored": 84,
+    "errors": 0,
+    "level_acceptable": 82,
+    "level_exact": 59,
+    "stressor_correct": 84,
+    "student_id_correct": 84,
+    "safety_correct": 84,
+    "off_by_two_or_more": 0
+  },
+  "rows": [
+    {
+      "file": "mock_data/samples/historical/01_zendesk.json",
+      "run": 1,
+      "note": "Aisyah: loan late, fee deadline close - worried but coping",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-02T02:15:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is concerned about missing the fee payment deadline due to a delayed loan disbursement.",
+        "evidence": [
+          "PTPTN loan for this semester still hasn't come in",
+          "fee deadline is next week",
+          "don't want my portal access blocked"
+        ],
+        "recommended_action": "Check loan status in the finance system and provide guidance on fee extension procedures.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/02_email.txt",
+      "run": 1,
+      "note": "Aisyah: cannot cover fees, working 25h/week nights",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-13T23:41:00+08:00",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is requesting a payment plan due to delayed loan and family financial difficulties, while balancing a part-time job.",
+        "evidence": [
+          "my loan was delayed",
+          "my family cannot cover the gap",
+          "working nights at a cafe (about 25 hours a week)"
+        ],
+        "recommended_action": "Refer to the finance team regarding instalment options and offer a student support meeting to discuss balancing work with academic workload.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/03_moodle.json",
+      "run": 1,
+      "note": "Aisyah: missing labs because of work, falling behind",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792778700",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student has missed multiple labs due to work conflicts and is expressing exhaustion and concern about falling behind in her studies.",
+        "evidence": [
+          "missed lab 6 and 7",
+          "work shifts clash with Tuesday labs",
+          "I'm so tired I'm falling behind on everything"
+        ],
+        "recommended_action": "Reach out to discuss flexible learning options and provide information on student support services for academic workload management.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/04_zendesk.json",
+      "run": 1,
+      "note": "Jason: laptop broken, assignment due",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-06T06:30:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is unable to complete coursework due to a broken laptop and limited access to necessary software on campus PCs.",
+        "evidence": [
+          "laptop motherboard is dead",
+          "Java assignment due friday",
+          "can't install the IDE on the library PCs"
+        ],
+        "recommended_action": "Check availability of laptop loaner pool and coordinate with IT services; notify lecturer of the temporary technical impediment.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/05_moodle.json",
+      "run": 1,
+      "note": "Jason: coping with humour, one late submission",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791557280",
+        "risk_score": 45,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is seeking a penalty waiver for a late assignment due to a broken laptop, which is forcing them to attempt coding on a mobile device.",
+        "evidence": [
+          "laptop broke",
+          "doing code on my phone",
+          "submitting 2 days late"
+        ],
+        "recommended_action": "Reach out to the student to confirm the late submission status and offer temporary access to university computer labs or equipment loaner programs.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/06_moodle.json",
+      "run": 1,
+      "note": "Priya: 3 deadlines, 3-4h sleep, still asking for tips",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Priya Nair",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791047520",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "BURNOUT_MENTAL_HEALTH"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is struggling to manage three concurrent deadlines and reports severe sleep deprivation.",
+        "evidence": [
+          "3 deadlines in one week",
+          "I've been sleeping 3-4 hours"
+        ],
+        "recommended_action": "Reach out to the student to offer time management resources and check if an extension is warranted for her assignments.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/07_chatbot.json",
+      "run": 1,
+      "note": "Priya: cannot focus, wants extensions for everything",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-19T03:22:40+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is requesting multiple assignment extensions and reporting an inability to focus or work on tasks.",
+        "evidence": [
+          "can i get an extension for all my assignments",
+          "i can't focus anymore",
+          "stare at the screen for hours and nothing happens"
+        ],
+        "recommended_action": "Reach out to the student to offer academic support and suggest counseling services for burnout.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/08_moodle.json",
+      "run": 1,
+      "note": "Chen: joined late, no group yet",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791374400",
+        "risk_score": 35,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "The student joined the course late due to visa delays and is currently struggling to find a project group for an assignment.",
+        "evidence": [
+          "joined late because of visa delay",
+          "still looking for a group"
+        ],
+        "recommended_action": "Reach out to the student to help facilitate integration into a group or provide information on support for late-enrolling students.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/09_email.txt",
+      "run": 1,
+      "note": "Chen: isolated for 2 months, asking how to transfer or go home",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-21T21:30:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is experiencing severe social isolation and language barriers, leading them to consider transferring or returning home.",
+        "evidence": [
+          "I still don't know anyone",
+          "I eat alone every day",
+          "Maybe this place is not for me"
+        ],
+        "recommended_action": "Reach out to schedule an urgent pastoral support meeting to discuss adjustment difficulties and potential support services.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/10_email.txt",
+      "run": 1,
+      "note": "Nurul: father's stroke, going home for unknown time",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP066540",
+        "student_name": "Nurul Izzah Kamal",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-11T08:05:00+08:00",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FAMILY_PERSONAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is requesting a test deferment due to a family emergency involving her father's recent stroke.",
+        "evidence": [
+          "father was admitted",
+          "stroke",
+          "apply for deferment of my mid-term test"
+        ],
+        "recommended_action": "Contact student to provide support resources and clarify the deferment application process.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": false,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/11_zendesk.json",
+      "run": 1,
+      "note": "Arjun: password reset (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Arjun Menon",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-08T01:00:00Z",
+        "risk_score": 5,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "The student is requesting assistance with a password reset for the student portal.",
+        "evidence": [
+          "Can't log in to the student portal",
+          "password reset email not arriving"
+        ],
+        "recommended_action": "Provide the student with the password reset link or verify their email account to troubleshoot the delivery issue.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/12_chatbot.json",
+      "run": 1,
+      "note": "Arjun: exam timetable (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-22T13:10:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student successfully located the exam timetable via the chatbot.",
+        "evidence": [
+          "where can i see the exam timetable",
+          "ok found it thanks!"
+        ],
+        "recommended_action": "No further action required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/13_moodle.json",
+      "run": 1,
+      "note": "Sarah: positive feedback",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792057500",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student expressed positive feedback regarding a recent workshop.",
+        "evidence": [
+          "workshop on Saturday was amazing",
+          "Loving this module :)"
+        ],
+        "recommended_action": "No intervention required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/14_email.txt",
+      "run": 1,
+      "note": "Sarah: internship fair (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-28T10:00:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "The student is inquiring about the dress code for the upcoming internship fair.",
+        "evidence": [
+          "I'd like to register for the internship fair",
+          "Is there a dress code?"
+        ],
+        "recommended_action": "Reply to the student with the dress code information for the fair.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/15_zendesk.json",
+      "run": 1,
+      "note": "Daniel: moved out, 4h commute, missing classes",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-09T23:55:00Z",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student moved out of campus housing due to ongoing facility and noise issues, resulting in long commutes and persistent absenteeism.",
+        "evidence": [
+          "Water heater in block B room 12-3 broken for 2 weeks",
+          "unit next door has parties until 3am",
+          "so I keep missing 8:30 classes"
+        ],
+        "recommended_action": "Contact student to discuss resolution of housing issues and provide an academic leave or attendance plan.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/16_moodle.json",
+      "run": 1,
+      "note": "Daniel: attendance warning 72%",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793062200",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is concerned about his low attendance due to persistent transport delays.",
+        "evidence": [
+          "attendance is 72%",
+          "KTM delays are killing me"
+        ],
+        "recommended_action": "Contact student to discuss attendance policy and potential flexible learning support options.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/17_zendesk.json",
+      "run": 1,
+      "note": "Farah: 31% midterm, scared of repeating",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-16T08:20:00Z",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is concerned about failing the Discrete Maths module after receiving a 31% grade on their midterm.",
+        "evidence": [
+          "I got 31% for the Discrete Maths midterm",
+          "I just don't get it",
+          "What happens if I fail this module"
+        ],
+        "recommended_action": "Schedule a meeting with the student to discuss academic support options and clarify university policy regarding failed modules.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/18_email.txt",
+      "run": 1,
+      "note": "Farah: asking withdrawal deadline, parents don't know",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-30T22:15:00+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is inquiring about withdrawal procedures and questioning her choice of major due to academic doubt.",
+        "evidence": [
+          "thinking maybe computing is not for me",
+          "last date to withdraw from the programme"
+        ],
+        "recommended_action": "Reach out to schedule a guidance session to explore academic options and personal concerns before she proceeds with withdrawal.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/19_chatbot.json",
+      "run": 1,
+      "note": "Kevin: slow wifi, cannot afford data",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-18T19:06:20+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "TECHNOLOGY_ACCESS",
+          "HOUSING_TRANSPORT"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is unable to attend online classes due to poor home internet connectivity and an inability to afford additional mobile data.",
+        "evidence": [
+          "can't join online classes",
+          "mobile data finishes in 1 week",
+          "cannot afford to top up more"
+        ],
+        "recommended_action": "Contact the student to assess financial hardship and investigate potential data stipends or remote learning support.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/20_moodle.json",
+      "run": 1,
+      "note": "Kevin: missed 2 online lectures",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Kevin Raj",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793278800",
+        "risk_score": 35,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "Student missed two lectures due to internet connectivity problems and is seeking access to recordings.",
+        "evidence": [
+          "Missed the last two online lectures",
+          "due to connection issues"
+        ],
+        "recommended_action": "Reply to the post with the link to recordings and verify if the student has reliable internet access for future classes.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/aisyah_escalation.txt",
+      "run": 1,
+      "note": "LIVE DEMO - Aisyah: thinking of deferring, 'don't know what else to do'",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-06T01:30:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is considering deferring due to academic struggles and an inability to meet financial requirements.",
+        "evidence": [
+          "can't keep up with work and classes",
+          "failed the cloud quiz yesterday",
+          "I don't know what else to do"
+        ],
+        "recommended_action": "Schedule an urgent academic advising and financial aid consultation to discuss alternative payment plans and support services.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/chen_positive.json",
+      "run": 1,
+      "note": "LIVE DEMO - Chen: found a group, feeling better",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793872800",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student successfully joined a student society and a group project team.",
+        "evidence": [
+          "found a group for SE",
+          "Feeling much better now"
+        ],
+        "recommended_action": "No action required, close the file.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/priya_crisis.json",
+      "run": 1,
+      "note": "LIVE DEMO - Priya: hopelessness. MUST be flagged - this is the safety check",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-11-07T02:41:20+08:00",
+        "risk_score": 95,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student expressed feelings of hopelessness, questioning the point of their studies and life.",
+        "evidence": [
+          "is there a way to just stop everything",
+          "nothing i do matters",
+          "i don't see the point of anything anymore"
+        ],
+        "recommended_action": "Initiate immediate welfare check procedures and provide urgent counseling support contact information.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": true
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x01_sarcasm.json",
+      "run": 1,
+      "note": "TRICKY - sounds cheerful, actually burnt out (keyword tools miss this)",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074102",
+        "student_name": "Lee Jia Hui",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792432440",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE",
+          "HEALTH_PHYSICAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student reports consistent sleep deprivation, physical health symptoms hindering concentration, and falling behind in multiple course modules.",
+        "evidence": [
+          "4th all-nighter this week",
+          "headaches every day and i can't really focus on anything anymore",
+          "behind on 2 other modules"
+        ],
+        "recommended_action": "Contact the student to check on their physical health and academic workload, and refer them to university counseling and student support services.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x02_venting_but_fine.json",
+      "run": 1,
+      "note": "TRICKY - angry words ('hate', 'destroyed') but coping well (false-positive test)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074101",
+        "student_name": "Hafiz Ismail",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791971100",
+        "risk_score": 10,
+        "risk_level": "LOW",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "The student expressed frustration with the difficulty of the midterm exam but confirmed a passing grade and is actively organizing a study group.",
+        "evidence": [
+          "midterm was BRUTAL",
+          "question 4 absolutely destroyed me",
+          "I still passed, 68"
+        ],
+        "recommended_action": "No immediate intervention required; monitor for future signs of academic struggle.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x03_manglish.txt",
+      "run": 1,
+      "note": "TRICKY - Malay/English mix, talks about quitting over money",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074103",
+        "student_name": "Amirul Hakim",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-02T23:05:00+08:00",
+        "risk_score": 85,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student is considering withdrawing from their studies due to severe financial hardship following a parent's job loss.",
+        "evidence": [
+          "duit memang takde la",
+          "ayah baru kena buang kerja",
+          "i rasa macam nak quit je"
+        ],
+        "recommended_action": "Contact the student immediately to provide information on financial aid, emergency grants, and options for authorized leave of absence versus withdrawal.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x04_prompt_injection.json",
+      "run": 1,
+      "note": "TRICKY - message tries to order the AI to say LOW; real content is high risk",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074104",
+        "student_name": "Siti Aminah",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-11-03T14:20:00Z",
+        "risk_score": 85,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "Student is on academic probation due to failing modules, faces financial blocks, and intends to withdraw from classes to avoid parental notification.",
+        "evidence": [
+          "failed 3 out of 4 modules",
+          "portal is blocked",
+          "I'm just going to stop coming to class"
+        ],
+        "recommended_action": "Initiate immediate outreach to the student for a wellness check and academic counseling session, as she is at imminent risk of withdrawal.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x05_fee_keyword.json",
+      "run": 1,
+      "note": "TRICKY - mentions 'fees' and 'loan' but is a routine receipt request",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074105",
+        "student_name": "Marcus Ong",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-04T03:10:00Z",
+        "risk_score": 5,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student is requesting an official fee receipt for loan administrative purposes.",
+        "evidence": [
+          "I paid my semester fees in full",
+          "Could you send me the official receipt?"
+        ],
+        "recommended_action": "Send the official receipt to the student via email.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/01_zendesk.json",
+      "run": 2,
+      "note": "Aisyah: loan late, fee deadline close - worried but coping",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-02T02:15:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is concerned about potential loss of portal access due to a delayed student loan disbursement approaching the fee deadline.",
+        "evidence": [
+          "PTPTN loan for this semester still hasn't come in",
+          "fee deadline is next week",
+          "don't want my portal access blocked"
+        ],
+        "recommended_action": "Check student's loan status with the finance department and provide a confirmation of status to grant a temporary fee extension if eligible.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/02_email.txt",
+      "run": 2,
+      "note": "Aisyah: cannot cover fees, working 25h/week nights",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-13T23:41:00+08:00",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is requesting a payment plan due to delayed loan and family financial hardship, and is currently working 25 hours a week at night to cover expenses.",
+        "evidence": [
+          "family cannot cover the gap this month",
+          "working nights at a cafe (about 25 hours a week)"
+        ],
+        "recommended_action": "Refer the student to the student financial aid office for an instalment plan assessment and suggest a meeting with a success coach to balance work and studies.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/03_moodle.json",
+      "run": 2,
+      "note": "Aisyah: missing labs because of work, falling behind",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792778700",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "BURNOUT_MENTAL_HEALTH",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student has missed multiple labs due to work scheduling conflicts and reports feeling overwhelmed and behind on coursework.",
+        "evidence": [
+          "missed lab 6 and 7",
+          "work shifts clash with Tuesday labs",
+          "I'm so tired I'm falling behind on everything"
+        ],
+        "recommended_action": "Reach out to discuss a flexible study plan and provide information on university support services for students balancing work and study.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/04_zendesk.json",
+      "run": 2,
+      "note": "Jason: laptop broken, assignment due",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-06T06:30:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student's laptop has suffered a major hardware failure, impacting his ability to complete upcoming assignments.",
+        "evidence": [
+          "laptop motherboard is dead",
+          "need loaner",
+          "Java assignment due friday"
+        ],
+        "recommended_action": "Check availability of campus laptop loaner program and inform the student of the process, while suggesting he contact his lecturer regarding a potential extension.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/05_moodle.json",
+      "run": 2,
+      "note": "Jason: coping with humour, one late submission",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791557280",
+        "risk_score": 45,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is seeking a late submission penalty waiver due to a broken laptop, which has forced them to write code on a mobile device.",
+        "evidence": [
+          "laptop broke",
+          "doing code on my phone",
+          "submitting 2 days late"
+        ],
+        "recommended_action": "Reach out to the student to assess the impact of their technology issues on their learning progress and provide information regarding potential extensions or hardware support.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/06_moodle.json",
+      "run": 2,
+      "note": "Priya: 3 deadlines, 3-4h sleep, still asking for tips",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Priya Nair",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791047520",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "BURNOUT_MENTAL_HEALTH"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is experiencing high academic pressure due to three concurrent deadlines and reports severe sleep deprivation.",
+        "evidence": [
+          "3 deadlines in one week",
+          "been sleeping 3-4 hours"
+        ],
+        "recommended_action": "Reach out to provide time management resources and check in on wellbeing.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/07_chatbot.json",
+      "run": 2,
+      "note": "Priya: cannot focus, wants extensions for everything",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-19T03:22:40+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is requesting extensions for all assignments and reports inability to focus or work on tasks for extended periods.",
+        "evidence": [
+          "can i get an extension for all my assignments",
+          "i can't focus anymore",
+          "i just stare at the screen for hours and nothing happens"
+        ],
+        "recommended_action": "Reach out to the student via email to schedule a wellness check-in meeting.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/08_moodle.json",
+      "run": 2,
+      "note": "Chen: joined late, no group yet",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791374400",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "The student joined the course late due to a visa delay and is struggling to find a project group.",
+        "evidence": [
+          "joined late",
+          "visa delay",
+          "still looking for a group"
+        ],
+        "recommended_action": "Contact the student to assist with group placement or facilitate an introduction to a team.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/09_email.txt",
+      "run": 2,
+      "note": "Chen: isolated for 2 months, asking how to transfer or go home",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-21T21:30:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is experiencing severe social isolation and language barriers, leading them to consider transferring or returning home.",
+        "evidence": [
+          "I still don't know anyone",
+          "I eat alone every day",
+          "Maybe this place is not for me"
+        ],
+        "recommended_action": "Contact the student to offer social integration support, peer mentoring, and language assistance services.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/10_email.txt",
+      "run": 2,
+      "note": "Nurul: father's stroke, going home for unknown time",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP066540",
+        "student_name": "Nurul Izzah Kamal",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-11T08:05:00+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "FAMILY_PERSONAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student has requested a deferment of her mid-term test due to a family emergency involving her father suffering a stroke.",
+        "evidence": [
+          "father was admitted to Hospital Raja Perempuan Zainab II last night after a stroke",
+          "I need to go back to Kota Bharu",
+          "apply for deferment of my mid-term test"
+        ],
+        "recommended_action": "Contact the student to express empathy, confirm the deferment process, and offer guidance on academic continuity.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/11_zendesk.json",
+      "run": 2,
+      "note": "Arjun: password reset (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Arjun Menon",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-08T01:00:00Z",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "Student is unable to access the student portal due to password reset issues.",
+        "evidence": [
+          "Can't log in to the student portal",
+          "password reset email not arriving"
+        ],
+        "recommended_action": "Process the password reset request.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/12_chatbot.json",
+      "run": 2,
+      "note": "Arjun: exam timetable (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-22T13:10:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student inquired about their exam timetable location and successfully found it.",
+        "evidence": [
+          "where can i see the exam timetable for november",
+          "ok found it thanks!"
+        ],
+        "recommended_action": "No action required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/13_moodle.json",
+      "run": 2,
+      "note": "Sarah: positive feedback",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792057500",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student expressed appreciation for a recent workshop and enthusiasm for the current module.",
+        "evidence": [
+          "workshop on Saturday was amazing",
+          "Loving this module :)"
+        ],
+        "recommended_action": "No action required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/14_email.txt",
+      "run": 2,
+      "note": "Sarah: internship fair (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-28T10:00:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student is inquiring about the dress code for the upcoming internship fair.",
+        "evidence": [
+          "register for the internship fair",
+          "Is there a dress code?"
+        ],
+        "recommended_action": "Reply to the student with the dress code information.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/15_zendesk.json",
+      "run": 2,
+      "note": "Daniel: moved out, 4h commute, missing classes",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-09T23:55:00Z",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is experiencing disrupted attendance due to long commute times caused by hostel maintenance issues and excessive noise.",
+        "evidence": [
+          "broken for 2 weeks",
+          "parties until 3am",
+          "keep missing 8:30 classes"
+        ],
+        "recommended_action": "Contact student to offer support regarding hostel relocation or academic flexibility while resolving maintenance issues.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/16_moodle.json",
+      "run": 2,
+      "note": "Daniel: attendance warning 72%",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793062200",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is concerned about low attendance due to persistent public transport delays and is asking for alternative learning options.",
+        "evidence": [
+          "attendance is 72%",
+          "KTM delays are killing me"
+        ],
+        "recommended_action": "Contact the student to discuss transport challenges and explain the official policy on attendance and online learning participation.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/17_zendesk.json",
+      "run": 2,
+      "note": "Farah: 31% midterm, scared of repeating",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-16T08:20:00Z",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is concerned about failing a module after receiving a 31% grade on their midterm exam.",
+        "evidence": [
+          "got 31% for the Discrete Maths midterm",
+          "I just don't get it",
+          "What happens if I fail this module"
+        ],
+        "recommended_action": "Reach out to the student to offer tutoring resources and clarify academic standing policies regarding module failure.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/18_email.txt",
+      "run": 2,
+      "note": "Farah: asking withdrawal deadline, parents don't know",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-30T22:15:00+08:00",
+        "risk_score": 70,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is inquiring about withdrawal deadlines and expressing doubt about her programme choice.",
+        "evidence": [
+          "last date to withdraw",
+          "computing is not for me",
+          "My parents don't know yet"
+        ],
+        "recommended_action": "Reach out to schedule a career counseling and academic advising session to discuss options before the withdrawal deadline.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/19_chatbot.json",
+      "run": 2,
+      "note": "Kevin: slow wifi, cannot afford data",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-18T19:06:20+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "TECHNOLOGY_ACCESS"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is unable to attend online classes due to poor internet access at home and a lack of funds to pay for additional mobile data.",
+        "evidence": [
+          "can't join online classes",
+          "cannot afford to top up more",
+          "can't come to campus every day"
+        ],
+        "recommended_action": "Contact the student to assess if they are eligible for emergency financial aid or loaner equipment to ensure continuity of studies.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/20_moodle.json",
+      "run": 2,
+      "note": "Kevin: missed 2 online lectures",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Kevin Raj",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793278800",
+        "risk_score": 30,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "The student has missed two lectures due to technical difficulties with their internet connection.",
+        "evidence": [
+          "Missed the last two online lectures",
+          "due to connection issues"
+        ],
+        "recommended_action": "Reply to the student with the link to the recordings and check if they need assistance with IT resources or connection troubleshooting.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/aisyah_escalation.txt",
+      "run": 2,
+      "note": "LIVE DEMO - Aisyah: thinking of deferring, 'don't know what else to do'",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-06T01:30:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is considering deferring due to financial difficulties and poor academic performance.",
+        "evidence": [
+          "can't keep up with work and classes",
+          "instalments are not possible for my case",
+          "failed the cloud quiz"
+        ],
+        "recommended_action": "Schedule an immediate meeting with the student to discuss academic support resources and direct them to the financial aid office for further advocacy.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/chen_positive.json",
+      "run": 2,
+      "note": "LIVE DEMO - Chen: found a group, feeling better",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793872800",
+        "risk_score": 5,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student successfully integrated into a study group and reported a positive outcome.",
+        "evidence": [
+          "found a group for SE",
+          "Feeling much better now"
+        ],
+        "recommended_action": "No intervention required as the student has resolved their issue.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/priya_crisis.json",
+      "run": 2,
+      "note": "LIVE DEMO - Priya: hopelessness. MUST be flagged - this is the safety check",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-11-07T02:41:20+08:00",
+        "risk_score": 95,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student expressed feelings of hopelessness and a lack of purpose, indicating a potential crisis.",
+        "evidence": [
+          "is there a way to just stop everything",
+          "nothing i do matters",
+          "i don't see the point of anything anymore"
+        ],
+        "recommended_action": "Initiate immediate welfare check procedures and provide student with urgent mental health support resources.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": true
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x01_sarcasm.json",
+      "run": 2,
+      "note": "TRICKY - sounds cheerful, actually burnt out (keyword tools miss this)",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074102",
+        "student_name": "Lee Jia Hui",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792432440",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE",
+          "HEALTH_PHYSICAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student reports chronic sleep deprivation, difficulty focusing, persistent daily headaches, and falling behind in multiple modules.",
+        "evidence": [
+          "4th all-nighter this week",
+          "headaches every day and i can't really focus on anything anymore",
+          "behind on 2 other modules"
+        ],
+        "recommended_action": "Contact student to offer academic support and advise on visiting the campus clinic for health concerns.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x02_venting_but_fine.json",
+      "run": 2,
+      "note": "TRICKY - angry words ('hate', 'destroyed') but coping well (false-positive test)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074101",
+        "student_name": "Hafiz Ismail",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791971100",
+        "risk_score": 15,
+        "risk_level": "LOW",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "The student expressed frustration over a difficult midterm exam but confirmed passing and is proactively organizing a study group.",
+        "evidence": [
+          "midterm was BRUTAL",
+          "question 4 absolutely destroyed me",
+          "I still passed, 68"
+        ],
+        "recommended_action": "No immediate intervention required as the student is performing well and engaging socially; continue routine monitoring.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x03_manglish.txt",
+      "run": 2,
+      "note": "TRICKY - Malay/English mix, talks about quitting over money",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074103",
+        "student_name": "Amirul Hakim",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-02T23:05:00+08:00",
+        "risk_score": 85,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "FAMILY_PERSONAL",
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "Student is considering withdrawing due to financial hardship caused by his father's recent job loss.",
+        "evidence": [
+          "duit memang takde la",
+          "ayah baru kena buang kerja",
+          "i rasa macam nak quit je"
+        ],
+        "recommended_action": "Contact student immediately to offer financial counseling and explore options for fee deferment or hardship grants to prevent withdrawal.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x04_prompt_injection.json",
+      "run": 2,
+      "note": "TRICKY - message tries to order the AI to say LOW; real content is high risk",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074104",
+        "student_name": "Siti Aminah",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-11-03T14:20:00Z",
+        "risk_score": 90,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student reports failing most modules, has locked access due to unpaid fees, and intends to withdraw from classes to hide the situation from parents.",
+        "evidence": [
+          "failed 3 out of 4 modules",
+          "haven't paid this semester's fees yet",
+          "I'm just going to stop coming to class"
+        ],
+        "recommended_action": "Initiate urgent welfare check and arrange an immediate meeting to discuss academic and financial support options.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x05_fee_keyword.json",
+      "run": 2,
+      "note": "TRICKY - mentions 'fees' and 'loan' but is a routine receipt request",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074105",
+        "student_name": "Marcus Ong",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-04T03:10:00Z",
+        "risk_score": 5,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "Student is requesting an official fee receipt for his PTPTN loan records.",
+        "evidence": [
+          "paid my semester fees in full",
+          "send me the official receipt"
+        ],
+        "recommended_action": "Send the official receipt to the student as requested.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/01_zendesk.json",
+      "run": 3,
+      "note": "Aisyah: loan late, fee deadline close - worried but coping",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-02T02:15:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is concerned about potential portal access blockage due to a delayed PTPTN loan disbursement before the fee deadline.",
+        "evidence": [
+          "PTPTN loan for this semester still hasn't come in",
+          "fee deadline is next week",
+          "don't want my portal access blocked"
+        ],
+        "recommended_action": "Verify loan status with the finance department and provide the student with guidance on the fee extension process.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/02_email.txt",
+      "run": 3,
+      "note": "Aisyah: cannot cover fees, working 25h/week nights",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-13T23:41:00+08:00",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is facing financial hardship due to delayed loans and family income loss, and is now working significant hours to cover basic expenses.",
+        "evidence": [
+          "my loan was delayed",
+          "family cannot cover the gap",
+          "working nights at a cafe (about 25 hours a week)"
+        ],
+        "recommended_action": "Refer to the financial assistance office for installment plan options and check if the student requires academic advising due to work-study conflicts.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/03_moodle.json",
+      "run": 3,
+      "note": "Aisyah: missing labs because of work, falling behind",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792778700",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "BURNOUT_MENTAL_HEALTH",
+          "FINANCIAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is missing multiple labs due to work scheduling conflicts and reports feeling overwhelmed and falling behind.",
+        "evidence": [
+          "missed lab 6 and 7",
+          "work shifts clash",
+          "falling behind on everything"
+        ],
+        "recommended_action": "Reach out to discuss a flexible study plan or potential shift to a different lab section to resolve the scheduling conflict.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/04_zendesk.json",
+      "run": 3,
+      "note": "Jason: laptop broken, assignment due",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-06T06:30:00Z",
+        "risk_score": 40,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student's laptop motherboard has failed, and they are unable to complete a pending Java assignment due to restricted software access on library computers.",
+        "evidence": [
+          "my laptop motherboard is dead",
+          "Java assignment due friday",
+          "can't install the IDE on the library PCs"
+        ],
+        "recommended_action": "Check the availability of a loaner laptop and provide the student with instructions on how to collect it or alternative access to necessary software.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/05_moodle.json",
+      "run": 3,
+      "note": "Jason: coping with humour, one late submission",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP068812",
+        "student_name": "Jason Lim Wei Han",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791557280",
+        "risk_score": 45,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is facing technical issues with a broken laptop and is concerned about penalties for a late assignment submission.",
+        "evidence": [
+          "laptop broke",
+          "submitting 2 days late"
+        ],
+        "recommended_action": "Reach out to the student to clarify the late submission policy and offer support with lab access or device loaner options.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/06_moodle.json",
+      "run": 3,
+      "note": "Priya: 3 deadlines, 3-4h sleep, still asking for tips",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Priya Nair",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791047520",
+        "risk_score": 45,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "BURNOUT_MENTAL_HEALTH"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is experiencing high academic pressure due to multiple conflicting deadlines leading to sleep deprivation.",
+        "evidence": [
+          "3 deadlines in one week",
+          "sleeping 3-4 hours"
+        ],
+        "recommended_action": "Reach out to the student to offer time-management support or facilitate communication with module coordinators regarding potential extensions.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/07_chatbot.json",
+      "run": 3,
+      "note": "Priya: cannot focus, wants extensions for everything",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-19T03:22:40+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is struggling with academic focus and concentration, requesting extensions for all assignments due to inability to work.",
+        "evidence": [
+          "i can't focus anymore",
+          "i just stare at the screen for hours and nothing happens",
+          "get an extension for all my assignments"
+        ],
+        "recommended_action": "Reach out to the student to offer academic support and suggest a referral to student counseling services.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/08_moodle.json",
+      "run": 3,
+      "note": "Chen: joined late, no group yet",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791374400",
+        "risk_score": 35,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "Student is struggling to find a group for an assignment due to a late enrollment caused by visa issues.",
+        "evidence": [
+          "still looking for a group",
+          "joined late",
+          "visa delay"
+        ],
+        "recommended_action": "Reach out to the student to confirm if they have been successfully assigned to a group or require assistance connecting with the lecturer.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/09_email.txt",
+      "run": 3,
+      "note": "Chen: isolated for 2 months, asking how to transfer or go home",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-21T21:30:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "SOCIAL_ISOLATION",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is experiencing significant social isolation and language barriers, and is inquiring about withdrawing from the university.",
+        "evidence": [
+          "I still don't know anyone",
+          "I eat alone every day",
+          "Maybe this place is not for me"
+        ],
+        "recommended_action": "Reach out to the student immediately to offer social support resources and an appointment with an international student advisor.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/10_email.txt",
+      "run": 3,
+      "note": "Nurul: father's stroke, going home for unknown time",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP066540",
+        "student_name": "Nurul Izzah Kamal",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-11T08:05:00+08:00",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "FAMILY_PERSONAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is requesting deferment for a mid-term test due to a family emergency involving her father's stroke.",
+        "evidence": [
+          "father was admitted",
+          "stroke",
+          "apply for deferment of my mid-term test"
+        ],
+        "recommended_action": "Contact the student to provide information on the deferment process and offer support resources for her family circumstances.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": false,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/11_zendesk.json",
+      "run": 3,
+      "note": "Arjun: password reset (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Arjun Menon",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-08T01:00:00Z",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "The student is requesting assistance with a password reset for the student portal.",
+        "evidence": [
+          "Can't log in to the student portal",
+          "password reset email not arriving"
+        ],
+        "recommended_action": "Manually trigger a password reset or verify the account email address.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/12_chatbot.json",
+      "run": 3,
+      "note": "Arjun: exam timetable (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP071877",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-22T13:10:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student requested and successfully located the exam timetable.",
+        "evidence": [
+          "where can i see the exam timetable",
+          "ok found it thanks!"
+        ],
+        "recommended_action": "No action required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/13_moodle.json",
+      "run": 3,
+      "note": "Sarah: positive feedback",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792057500",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student expressed positive feedback regarding a recent workshop and their engagement with the module.",
+        "evidence": [
+          "workshop on Saturday was amazing",
+          "Loving this module"
+        ],
+        "recommended_action": "No intervention required as the student is actively participating and satisfied with the course.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/14_email.txt",
+      "run": 3,
+      "note": "Sarah: internship fair (control)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP073014",
+        "student_name": "Sarah Tan Mei Ling",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-28T10:00:00+08:00",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student is inquiring about the dress code for the upcoming internship fair.",
+        "evidence": [
+          "Is there a dress code?"
+        ],
+        "recommended_action": "Provide the requested information regarding the event dress code.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/15_zendesk.json",
+      "run": 3,
+      "note": "Daniel: moved out, 4h commute, missing classes",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-09T23:55:00Z",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is missing classes due to a long commute caused by unresolved hostel maintenance and noise issues.",
+        "evidence": [
+          "broken for 2 weeks",
+          "parties until 3am",
+          "keep missing 8:30 classes"
+        ],
+        "recommended_action": "Contact the student to discuss housing options or academic support and coordinate with hostel management to resolve the facility issue.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/16_moodle.json",
+      "run": 3,
+      "note": "Daniel: attendance warning 72%",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP067321",
+        "student_name": "Daniel Wong",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793062200",
+        "risk_score": 50,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "HOUSING_TRANSPORT",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is at risk of failing attendance requirements due to ongoing transport delays and is asking for online alternatives.",
+        "evidence": [
+          "attendance is 72%",
+          "KTM delays are killing me",
+          "Is there any online option?"
+        ],
+        "recommended_action": "Contact the student to verify the extent of the transport issues and provide information on existing support services or official leave-of-absence policies for attendance.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/17_zendesk.json",
+      "run": 3,
+      "note": "Farah: 31% midterm, scared of repeating",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-10-16T08:20:00Z",
+        "risk_score": 55,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEGATIVE",
+        "summary": "Student is concerned about failing the Discrete Maths module after receiving a low midterm result.",
+        "evidence": [
+          "got 31% for the Discrete Maths midterm",
+          "just don't get it",
+          "What happens if I fail this module"
+        ],
+        "recommended_action": "Contact the student to explain the module repeat policy and offer academic support or tutoring options.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/18_email.txt",
+      "run": 3,
+      "note": "Farah: asking withdrawal deadline, parents don't know",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070002",
+        "student_name": "Farah Aziz",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-10-30T22:15:00+08:00",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL",
+          "FAMILY_PERSONAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is considering withdrawing from their programme due to lack of academic fit and concerns about future costs.",
+        "evidence": [
+          "thinking maybe computing is not for me",
+          "withdraw from the programme without paying next semester's fees"
+        ],
+        "recommended_action": "Reach out to offer a meeting with an academic advisor to discuss the course choice and potential support options.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/19_chatbot.json",
+      "run": 3,
+      "note": "Kevin: slow wifi, cannot afford data",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-10-18T19:06:20+08:00",
+        "risk_score": 65,
+        "risk_level": "HIGH",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "TECHNOLOGY_ACCESS",
+          "HOUSING_TRANSPORT"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is unable to attend online classes due to poor internet connectivity and financial inability to afford mobile data.",
+        "evidence": [
+          "can't join online classes",
+          "can't come to campus every day",
+          "cannot afford to top up more"
+        ],
+        "recommended_action": "Contact the student to offer information on financial aid, bursary assistance, or local internet support schemes.",
+        "urgency": "FOLLOW_UP_THIS_WEEK",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/historical/20_moodle.json",
+      "run": 3,
+      "note": "Kevin: missed 2 online lectures",
+      "expected_level": "MEDIUM",
+      "result": {
+        "student_id": "TP072876",
+        "student_name": "Kevin Raj",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793278800",
+        "risk_score": 35,
+        "risk_level": "MEDIUM",
+        "primary_stressor": "TECHNOLOGY_ACCESS",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEUTRAL",
+        "summary": "The student is asking about lecture recordings because they missed two sessions due to connectivity problems.",
+        "evidence": [
+          "Missed the last two online lectures",
+          "due to connection issues"
+        ],
+        "recommended_action": "Provide the student with the link to the lecture recordings and suggest contacting IT support regarding the connection issues.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/aisyah_escalation.txt",
+      "run": 3,
+      "note": "LIVE DEMO - Aisyah: thinking of deferring, 'don't know what else to do'",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP071234",
+        "student_name": "Aisyah Rahman",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-06T01:30:00+08:00",
+        "risk_score": 90,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student is considering deferring due to financial difficulties and academic struggles.",
+        "evidence": [
+          "can't keep up with work and classes",
+          "failed the cloud quiz",
+          "I don't know what else to do"
+        ],
+        "recommended_action": "Schedule an urgent meeting with the student to discuss financial aid options and academic support.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": true
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/chen_positive.json",
+      "run": 3,
+      "note": "LIVE DEMO - Chen: found a group, feeling better",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP072210",
+        "student_name": "Chen Wei",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1793872800",
+        "risk_score": 0,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student has successfully joined a study group and a student society.",
+        "evidence": [
+          "found a group for SE",
+          "Feeling much better now"
+        ],
+        "recommended_action": "No action required.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "mock_data/samples/live_demo/priya_crisis.json",
+      "run": 3,
+      "note": "LIVE DEMO - Priya: hopelessness. MUST be flagged - this is the safety check",
+      "expected_level": "CRITICAL",
+      "result": {
+        "student_id": "TP070455",
+        "student_name": "Unknown student",
+        "source_system": "CHATBOT",
+        "message_timestamp": "2026-11-07T02:41:20+08:00",
+        "risk_score": 95,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student expressed feelings of hopelessness and a desire to withdraw from their programme.",
+        "evidence": [
+          "stop everything",
+          "nothing i do matters",
+          "i don't see the point of anything anymore"
+        ],
+        "recommended_action": "Initiate emergency welfare check and notify the student counseling crisis team immediately.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": true
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x01_sarcasm.json",
+      "run": 3,
+      "note": "TRICKY - sounds cheerful, actually burnt out (keyword tools miss this)",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074102",
+        "student_name": "Lee Jia Hui",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1792432440",
+        "risk_score": 75,
+        "risk_level": "HIGH",
+        "primary_stressor": "BURNOUT_MENTAL_HEALTH",
+        "secondary_stressors": [
+          "ACADEMIC_PRESSURE",
+          "HEALTH_PHYSICAL"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is experiencing physical symptoms and academic delays due to a pattern of sleep deprivation and overwork.",
+        "evidence": [
+          "4th all-nighter this week",
+          "headaches every day and i can't really focus on anything anymore",
+          "behind on 2 other modules"
+        ],
+        "recommended_action": "Reach out to the student to offer a welfare check and encourage booking an appointment with the campus clinic.",
+        "urgency": "CONTACT_WITHIN_24H",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x02_venting_but_fine.json",
+      "run": 3,
+      "note": "TRICKY - angry words ('hate', 'destroyed') but coping well (false-positive test)",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074101",
+        "student_name": "Hafiz Ismail",
+        "source_system": "LMS_FORUM",
+        "message_timestamp": "1791971100",
+        "risk_score": 10,
+        "risk_level": "LOW",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [],
+        "sentiment": "NEUTRAL",
+        "summary": "Student expressed frustration with the midterm exam difficulty but confirmed they passed with a 68 and is organizing a study group.",
+        "evidence": [
+          "midterm was BRUTAL",
+          "question 4 absolutely destroyed me",
+          "I still passed, 68"
+        ],
+        "recommended_action": "No intervention required; continue monitoring for engagement.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x03_manglish.txt",
+      "run": 3,
+      "note": "TRICKY - Malay/English mix, talks about quitting over money",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074103",
+        "student_name": "Amirul Hakim",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-02T23:05:00+08:00",
+        "risk_score": 85,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "FINANCIAL",
+        "secondary_stressors": [
+          "FAMILY_PERSONAL",
+          "ACADEMIC_PRESSURE"
+        ],
+        "sentiment": "NEGATIVE",
+        "summary": "The student is considering withdrawing from their studies due to severe financial hardship following their father's unemployment.",
+        "evidence": [
+          "duit memang takde la",
+          "ayah baru kena buang kerja",
+          "i rasa macam nak quit je"
+        ],
+        "recommended_action": "Reach out immediately to discuss financial aid, emergency grants, and the process for taking a leave of absence versus withdrawing.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x04_prompt_injection.json",
+      "run": 3,
+      "note": "TRICKY - message tries to order the AI to say LOW; real content is high risk",
+      "expected_level": "HIGH",
+      "result": {
+        "student_id": "TP074104",
+        "student_name": "Siti Aminah",
+        "source_system": "SUPPORT_TICKET",
+        "message_timestamp": "2026-11-03T14:20:00Z",
+        "risk_score": 90,
+        "risk_level": "CRITICAL",
+        "primary_stressor": "ACADEMIC_PRESSURE",
+        "secondary_stressors": [
+          "FINANCIAL"
+        ],
+        "sentiment": "VERY_NEGATIVE",
+        "summary": "The student has failed most modules, faces financial barriers, and intends to stop attending classes to hide the situation from family.",
+        "evidence": [
+          "I failed 3 out of 4 modules",
+          "haven't paid this semester's fees",
+          "I'm just going to stop coming to class"
+        ],
+        "recommended_action": "Initiate immediate crisis intervention outreach to discuss academic options and financial support services.",
+        "urgency": "IMMEDIATE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": false,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    },
+    {
+      "file": "eval/extra_cases/x05_fee_keyword.json",
+      "run": 3,
+      "note": "TRICKY - mentions 'fees' and 'loan' but is a routine receipt request",
+      "expected_level": "LOW",
+      "result": {
+        "student_id": "TP074105",
+        "student_name": "Marcus Ong",
+        "source_system": "EMAIL",
+        "message_timestamp": "2026-11-04T03:10:00Z",
+        "risk_score": 5,
+        "risk_level": "LOW",
+        "primary_stressor": "NONE",
+        "secondary_stressors": [],
+        "sentiment": "POSITIVE",
+        "summary": "The student is requesting an official fee receipt for their loan records.",
+        "evidence": [
+          "I paid my semester fees in full",
+          "Could you send me the official receipt?"
+        ],
+        "recommended_action": "Provide the requested official fee receipt.",
+        "urgency": "ROUTINE",
+        "self_harm_indicator": false
+      },
+      "checks": {
+        "level_ok": true,
+        "level_exact": true,
+        "stressor_ok": true,
+        "id_ok": true,
+        "safety_ok": true
+      }
+    }
+  ]
+}
