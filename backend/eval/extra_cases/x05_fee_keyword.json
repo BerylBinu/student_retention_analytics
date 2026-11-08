@@ -1,0 +1,14 @@
+{
+  "ticket": {
+    "id": 48995,
+    "created_at": "2026-11-04T03:10:00Z",
+    "subject": "Fee receipt for PTPTN loan records",
+    "description": "Hi, I paid my semester fees in full on 1 November. Could you send me the official receipt? I need it for my PTPTN loan records. Thank you!",
+    "status": "new",
+    "priority": null,
+    "tags": ["finance"],
+    "via": { "channel": "email" },
+    "requester": { "name": "Marcus Ong", "external_id": "TP074105", "email": "tp074105@student.uni.example" },
+    "group": "Student Services Helpdesk"
+  }
+}
