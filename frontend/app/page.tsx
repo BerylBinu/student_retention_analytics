@@ -114,7 +114,7 @@ export default async function OverviewPage() {
         </Card>
 
         {/* Risk distribution */}
-        <Card title="Students by risk level" subtitle="Based on each student's most serious signal" className="lg:col-span-2">
+        <Card title="Students by risk level" subtitle="Based on each student's most recent message" className="lg:col-span-2">
           <Donut rows={byLevel} centerLabel="students" />
         </Card>
       </div>

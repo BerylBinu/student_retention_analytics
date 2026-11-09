@@ -19,6 +19,8 @@ export interface Student {
   current_risk_score: number;
   current_risk_level: RiskLevel;
   latest_risk_score: number;
+  peak_risk_score?: number;
+  peak_risk_level?: RiskLevel;
   average_risk_score: number;
   trend: "NEW" | "RISING" | "FALLING" | "STABLE";
   top_stressors: string[];

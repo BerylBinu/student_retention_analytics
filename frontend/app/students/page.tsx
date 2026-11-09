@@ -14,7 +14,7 @@ export default async function StudentsPage() {
     <div>
       <PageHeader
         title="At-risk students"
-        subtitle="Ranked by risk. A student's score is their most serious warning sign, so one urgent message is enough to reach out."
+        subtitle="Ranked by current risk, based on each student's most recent message. Anyone flagged for possible self-harm stays critical until a counsellor follows up."
       />
       <StudentTable students={students} />
     </div>

@@ -85,7 +85,7 @@ frontend/
 - **Live data, no caching.** Every page fetches fresh data from the API when it opens, so new AI results show up straight away. `cacheComponents` is turned off in `next.config.ts` for this reason.
 - **No chart library.** The charts (donut, bars, risk timeline) are plain SVG and Tailwind, so there are fewer dependencies to install.
 - **Friendly labels.** API values like `BURNOUT_MENTAL_HEALTH` and `FOLLOW_UP_THIS_WEEK` are turned into readable text in `lib/api.ts`. Each risk level and stressor has one colour, used the same way on every page.
-- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's score is their most serious signal, so one urgent message is enough to flag them.
+- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's current score comes from their most recent message, so a student who gets help moves down the list. Safety rule (set in the backend): anyone flagged for possible self-harm stays Critical until a counsellor follows up. The detail page also shows the peak score for context.
 
 ## Built with
 
