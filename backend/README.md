@@ -356,7 +356,13 @@ NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaw
 - `primary_stressor`: `FINANCIAL`, `ACADEMIC_PRESSURE`, `BURNOUT_MENTAL_HEALTH`, `SOCIAL_ISOLATION`,
   `TECHNOLOGY_ACCESS`, `FAMILY_PERSONAL`, `HEALTH_PHYSICAL`, `HOUSING_TRANSPORT`, `NONE`
 - `urgency`: `ROUTINE`, `FOLLOW_UP_THIS_WEEK`, `CONTACT_WITHIN_24H`, `IMMEDIATE`
-- `trend` (students only): `NEW`, `RISING`, `FALLING`, `STABLE`
+- `trend` (students only): `NEW`, `RISING`, `FALLING`, `STABLE` (latest message compared with the one before it)
+
+**How a student's risk is worked out (`/students`):** `current_risk_*`, `highest_urgency` and
+`recommended_action` come from the student's **most recent** message, so a student who gets help drops
+down the list. Safety rule: if any message was flagged for self-harm, the student stays `CRITICAL` /
+`IMMEDIATE` no matter what they send later. `peak_risk_score` / `peak_risk_level` keep the highest-risk
+message ever, for context.
 - `source_system`: `LMS_FORUM`, `SUPPORT_TICKET`, `EMAIL`, `CHATBOT`, `OTHER`
 
 **Example: `GET /students`**
@@ -372,6 +378,8 @@ NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaw
       "current_risk_score": 92,
       "current_risk_level": "CRITICAL",
       "latest_risk_score": 92,
+      "peak_risk_score": 92,
+      "peak_risk_level": "CRITICAL",
       "average_risk_score": 70.3,
       "trend": "RISING",
       "top_stressors": ["BURNOUT_MENTAL_HEALTH", "ACADEMIC_PRESSURE"],

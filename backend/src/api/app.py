@@ -212,24 +212,40 @@ def group_by_student(items):
 def summarise_student(student_id, records):
     """Turn many signals into one profile.
 
-    current_risk_score = the highest-risk signal from this student. This is easy to explain
-    to judges and counselors: "one serious warning sign is enough to reach out".
-    trend compares the most recent signal with the earliest one.
+    current_risk_* = the student's MOST RECENT signal, so the dashboard reflects where they are
+    now: a student who reached out and got help drops down the list.
+    Safety rule: a self-harm signal never fades on its own. If any message was flagged, the student
+    stays CRITICAL / IMMEDIATE until a counsellor follows up.
+    peak_risk_* = the highest-risk signal ever, kept for context.
+    trend compares the latest signal with the one before it.
     """
     records = sorted(records, key=lambda r: r.get("event_time", ""))
-    worst = max(records, key=lambda r: (r.get("risk_score", 0), URGENCY_ORDER.get(r.get("urgency"), 0)))
+    peak = max(records, key=lambda r: (r.get("risk_score", 0), URGENCY_ORDER.get(r.get("urgency"), 0)))
     latest = records[-1]
-    first_score = records[0].get("risk_score", 0)
     latest_score = latest.get("risk_score", 0)
+    flagged = [r for r in records if r.get("self_harm_indicator")]
+
+    if flagged:
+        driver = max(flagged + [latest], key=lambda r: r.get("risk_score", 0))
+        current_score = max(driver.get("risk_score", 0), 90)
+        current_level = "CRITICAL"
+        current_urgency = "IMMEDIATE"
+    else:
+        driver = latest
+        current_score = latest_score
+        current_level = latest.get("risk_level", "LOW")
+        current_urgency = latest.get("urgency", "ROUTINE")
 
     if len(records) < 2:
         trend = "NEW"
-    elif latest_score - first_score >= 10:
-        trend = "RISING"
-    elif first_score - latest_score >= 10:
-        trend = "FALLING"
     else:
-        trend = "STABLE"
+        previous_score = records[-2].get("risk_score", 0)
+        if latest_score - previous_score >= 10:
+            trend = "RISING"
+        elif previous_score - latest_score >= 10:
+            trend = "FALLING"
+        else:
+            trend = "STABLE"
 
     stressor_counts = Counter()
     for r in records:
@@ -244,15 +260,18 @@ def summarise_student(student_id, records):
         "student_id": student_id,
         "student_name": names[-1] if names else "Unknown student",
         "signal_count": len(records),
-        "current_risk_score": worst.get("risk_score", 0),
-        "current_risk_level": worst.get("risk_level", "LOW"),
+        "current_risk_score": current_score,
+        "current_risk_level": current_level,
         "latest_risk_score": latest_score,
+        "peak_risk_score": peak.get("risk_score", 0),
+        "peak_risk_level": peak.get("risk_level", "LOW"),
         "average_risk_score": round(sum(r.get("risk_score", 0) for r in records) / len(records), 1),
         "trend": trend,
         "top_stressors": [s for s, _ in stressor_counts.most_common(3)],
-        "self_harm_flag": any(r.get("self_harm_indicator") for r in records),
-        "highest_urgency": max((r.get("urgency", "ROUTINE") for r in records), key=lambda u: URGENCY_ORDER.get(u, 0)),
-        "recommended_action": worst.get("recommended_action", ""),
+        "self_harm_flag": bool(flagged),
+        # Field name kept so the dashboard doesn't need changes; it now holds the CURRENT urgency.
+        "highest_urgency": current_urgency,
+        "recommended_action": driver.get("recommended_action", ""),
         "latest_summary": latest.get("summary", ""),
         "first_event_time": records[0].get("event_time", ""),
         "latest_event_time": latest.get("event_time", ""),

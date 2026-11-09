@@ -223,6 +223,34 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(aisyah["current_risk_level"], "HIGH")
         self.assertIsInstance(aisyah["current_risk_score"], int)
 
+    def add_row(self, rid, sid, score, level, ts, harm=False):
+        FAKE_DYNAMO.table.items[rid] = {
+            "record_id": rid, "student_id": sid, "student_name": sid, "risk_score": Decimal(score),
+            "risk_level": level, "primary_stressor": "NONE", "secondary_stressors": [], "event_time": ts,
+            "event_date": ts[:10], "self_harm_indicator": harm, "urgency": "IMMEDIATE" if harm else "ROUTINE",
+            "source_system": "EMAIL", "recommended_action": f"action-{rid}", "summary": "s",
+        }
+
+    def test_recovery_lowers_current_risk(self):
+        self.add_row("c1", "TP072210", 82, "CRITICAL", "2026-10-21T13:30:00Z")
+        self.add_row("c2", "TP072210", 2, "LOW", "2026-11-05T10:00:00Z")
+        status, body = self.call("GET /students/{student_id}", pathParameters={"student_id": "TP072210"})
+        self.assertEqual(body["current_risk_level"], "LOW")
+        self.assertEqual(body["current_risk_score"], 2)
+        self.assertEqual(body["peak_risk_score"], 82)
+        self.assertEqual(body["trend"], "FALLING")
+        self.assertEqual(body["recommended_action"], "action-c2")
+
+    def test_self_harm_never_fades(self):
+        self.add_row("p1", "TP070999", 95, "CRITICAL", "2026-11-01T00:00:00Z", harm=True)
+        self.add_row("p2", "TP070999", 5, "LOW", "2026-11-02T00:00:00Z")
+        status, body = self.call("GET /students/{student_id}", pathParameters={"student_id": "TP070999"})
+        self.assertEqual(body["current_risk_level"], "CRITICAL")
+        self.assertEqual(body["current_risk_score"], 95)
+        self.assertEqual(body["highest_urgency"], "IMMEDIATE")
+        self.assertEqual(body["recommended_action"], "action-p1")
+        self.assertTrue(body["self_harm_flag"])
+
     def test_insights_filter(self):
         status, body = self.call("GET /insights", queryStringParameters={"risk_level": "high,critical"})
         self.assertEqual(body["count"], 2)
