@@ -207,7 +207,7 @@ foreach ($role in "roles/datastore.user","roles/storage.objectAdmin","roles/secr
 Let Cloud Storage send "file created" events (Google's docs require this for storage triggers):
 
 ```
-$GCS_SA = gcloud storage service-agent --project=$PROJECT
+$GCS_SA = (gcloud storage service-agent --project=$PROJECT | Out-String).Trim()
 gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$GCS_SA" --role=roles/pubsub.publisher --condition=None --quiet | Out-Null
 ```
 
@@ -227,7 +227,7 @@ Permissions can take 1-2 minutes to apply. Have a drink of water, then continue.
 ### 3.1 The processor (AI step)
 
 ```
-gcloud functions deploy retention-processor --gen2 --runtime=python313 --region=$REGION --source=src/processor --entry-point=handle_upload --trigger-bucket=$RAW --service-account=$SA --trigger-service-account=$SA --retry --max-instances=2 --concurrency=1 --timeout=300s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,CURATED_BUCKET=$CURATED,GEMINI_MODEL=gemini-3.1-flash-lite,MIN_SECONDS_PER_CALL=9" --set-secrets="GEMINI_API_KEY=gemini-api-key:latest"
+gcloud functions deploy retention-processor --gen2 --runtime=python313 --region=$REGION --source=src/processor --entry-point=handle_upload --trigger-bucket=$RAW --service-account=$SA --trigger-service-account=$SA --retry --max-instances=2 --concurrency=1 --timeout=300s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,CURATED_BUCKET=$CURATED,GEMINI_MODEL=gemini-3.1-flash-lite,MIN_SECONDS_PER_CALL=9" --set-secrets=GEMINI_API_KEY=gemini-api-key:latest
 ```
 
 What the important flags mean:
@@ -243,7 +243,7 @@ new project can fail while permissions finish setting up).
 ### 3.2 The API
 
 ```
-gcloud functions deploy retention-api --gen2 --runtime=python313 --region=$REGION --source=src/api --entry-point=handle_http --trigger-http --allow-unauthenticated --service-account=$SA --max-instances=5 --timeout=60s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,RAW_BUCKET=$RAW,ALLOWED_ORIGIN=*" --set-secrets="ADMIN_TOKEN=admin-token:latest"
+gcloud functions deploy retention-api --gen2 --runtime=python313 --region=$REGION --source=src/api --entry-point=handle_http --trigger-http --allow-unauthenticated --service-account=$SA --max-instances=5 --timeout=60s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,RAW_BUCKET=$RAW,ALLOWED_ORIGIN=*" --set-secrets=ADMIN_TOKEN=admin-token:latest
 ```
 
 Get its address and test it:
@@ -322,7 +322,7 @@ free-tier pacing. **Don't press Send twice** — the backend retries on its own,
 **Reset to the original 20 messages** (deletes only messages sent from the Live demo page):
 
 ```
-$ADMIN = gcloud secrets versions access latest --secret=admin-token
+$ADMIN = (gcloud secrets versions access latest --secret=admin-token | Out-String).Trim()
 Invoke-RestMethod -Method Post -Uri "$API/admin/reset-demo" -Headers @{ "X-Admin-Token" = $ADMIN }
 ```
 
