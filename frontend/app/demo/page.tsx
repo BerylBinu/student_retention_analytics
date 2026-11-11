@@ -96,7 +96,7 @@ export default function DemoPage() {
     <div className="space-y-6">
       <PageHeader
         title="Live demo: analyse a new message"
-        subtitle="Sends a message into the AWS pipeline (S3, Lambda, Gemini, DynamoDB) and shows the AI result when it is ready."
+        subtitle="Sends a message into the Google Cloud pipeline (Cloud Storage, Cloud Run functions, Gemini, Firestore) and shows the AI result when it is ready."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -167,9 +167,9 @@ export default function DemoPage() {
 
           {busy && (
             <div className="space-y-3 text-sm">
-              <Step done={phase === "waiting"} text="Message uploaded to the S3 data lake" />
+              <Step done={phase === "waiting"} text="Message uploaded to the Cloud Storage data lake" />
               <Step done={false} active={phase === "waiting"} text={`Gemini is reading the message (${seconds}s)`} />
-              <Step done={false} text="Result saved to DynamoDB" />
+              <Step done={false} text="Result saved to Firestore" />
               <p className="pt-2 text-xs text-slate-400">This usually takes 10 to 60 seconds.</p>
             </div>
           )}

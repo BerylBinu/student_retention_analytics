@@ -1,15 +1,17 @@
 """
-Processor Lambda - the AI step of the pipeline.
+Processor function - the AI step of the pipeline (Google Cloud version).
 
 Flow:
-    S3 upload (incoming/...)  ->  SQS message  ->  this function
-        1. download the raw file from S3
+    file lands in the raw Cloud Storage bucket (incoming/...)
+        -> Eventarc sends a "file created" event -> this Cloud Run function
+        1. download the raw file from Cloud Storage
         2. send its text to Gemini with a strict JSON schema
         3. clean up / sanity-check the answer (risk score, level, urgency)
-        4. save one row per message in DynamoDB + a curated JSON copy in S3
+        4. save one document per message in Firestore + a curated JSON copy in the curated bucket
 
-Uses only the Python standard library plus boto3 (already included in the
-Lambda runtime), so there is nothing to pip install.
+Deployed as a Cloud Run function (see main.py for the entry point). The Google Cloud
+libraries are imported only when they are needed, so this file can also be imported on a
+laptop (by tests, scripts/test_gemini_key.py and eval/run_eval.py) without installing them.
 """
 
 import hashlib
@@ -22,39 +24,56 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
-from decimal import Decimal
-from urllib.parse import unquote_plus
 
-import boto3
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("processor")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
 # ---------------------------------------------------------------------------
-# Configuration (set by template.yaml; defaults help local testing)
+# Configuration (set at deploy time; defaults help local testing)
 # ---------------------------------------------------------------------------
-TABLE_NAME = os.environ.get("TABLE_NAME", "")
+FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION", "insights")
+CURATED_BUCKET = os.environ.get("CURATED_BUCKET", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
-GEMINI_API_KEY_PARAM = os.environ.get("GEMINI_API_KEY_PARAM", "/retention/gemini-api-key")
-CURATED_PREFIX = os.environ.get("CURATED_PREFIX", "curated/")
+INCOMING_PREFIX = "incoming/"
+LIVE_PREFIX = "incoming/live/"
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MAX_FILE_BYTES = 1_000_000   # skip anything bigger than ~1 MB
 MAX_TEXT_CHARS = 12_000      # text sent to Gemini per message
-MAX_STORED_TEXT = 4_000      # raw text kept in DynamoDB for the counselor to read
+MAX_STORED_TEXT = 4_000      # raw text kept in Firestore for the counselor to read
 GEMINI_ATTEMPTS = 3
 GEMINI_TIMEOUT_SECONDS = 30
-# Free-tier rate limiting. Each Lambda copy spends at least this many seconds per Gemini call,
-# so 2 copies x (60 / 9s) = ~13 calls per minute, under the free tier's 15 per minute.
-# On a paid Gemini plan, set MIN_SECONDS_PER_CALL to 0 in template.yaml.
+# Free-tier rate limiting. Each function instance spends at least this many seconds per Gemini call,
+# so 2 instances x (60 / 9s) = ~13 calls per minute, under the free tier's 15 per minute.
+# On a paid Gemini plan, deploy with MIN_SECONDS_PER_CALL=0.
 MIN_SECONDS_PER_CALL = float(os.environ.get("MIN_SECONDS_PER_CALL", "9"))
 MAX_RATE_LIMIT_WAIT = 65  # longest we wait when Gemini says "retry in Ns"
 
-s3 = boto3.client("s3")
-ssm = boto3.client("ssm")
-dynamodb = boto3.resource("dynamodb")
+_storage_client = None
+_firestore_client = None
 
-_api_key_cache = None
+
+class TransientError(RuntimeError):
+    """A temporary problem (rate limit, Gemini busy, network). Raising it makes Eventarc retry later."""
+
+
+def storage_client():
+    global _storage_client
+    if _storage_client is None:
+        from google.cloud import storage
+
+        _storage_client = storage.Client()
+    return _storage_client
+
+
+def firestore_client():
+    global _firestore_client
+    if _firestore_client is None:
+        from google.cloud import firestore
+
+        _firestore_client = firestore.Client()
+    return _firestore_client
+
 
 # ---------------------------------------------------------------------------
 # What we ask Gemini to return
@@ -159,66 +178,75 @@ Rules:
 - If a field is missing from the message, return an empty string for it. Never invent student IDs or names."""
 
 
-# ---------------------------------------------------------------------------
-# Lambda entry point
-# ---------------------------------------------------------------------------
-def lambda_handler(event, context):
-    """Called by SQS with a batch of messages (batch size is 1 in template.yaml).
 
-    Returning batchItemFailures tells SQS to retry ONLY the failed messages.
-    After 3 failures a message moves to the dead-letter queue.
+# ---------------------------------------------------------------------------
+# Entry point (called from main.py for every "file created" event in the raw bucket)
+# ---------------------------------------------------------------------------
+def handle_storage_event(data):
+    """`data` is the Cloud Storage event payload: {"bucket": ..., "name": ..., "size": "123", ...}.
+
+    Error handling decides whether Google Cloud retries:
+      - TransientError (rate limit, Gemini busy, network, database hiccup) is raised again, so the
+        event is retried automatically with increasing delays (for up to 24 hours).
+      - Permanent problems (bad API key, file Gemini refuses to analyse) are logged and the event
+        is dropped, so we don't waste Gemini quota retrying something that will never work.
     """
-    failures = []
-    for message in event.get("Records", []):
-        try:
-            handle_sqs_message(message)
-        except Exception:  # noqa: BLE001 - we want every error logged and retried
-            logger.exception("Failed to process SQS message %s", message.get("messageId"))
-            failures.append({"itemIdentifier": message["messageId"]})
-    return {"batchItemFailures": failures}
+    bucket = data.get("bucket", "")
+    name = data.get("name", "")
+    try:
+        size = int(data.get("size") or 0)
+    except (TypeError, ValueError):
+        size = 0
+
+    if not name.startswith(INCOMING_PREFIX):
+        logger.info("Skipping %s: only files under %s are processed", name, INCOMING_PREFIX)
+        return "skipped"
+    if name.endswith("/") or size == 0:
+        logger.info("Skipping folder placeholder or empty file: %s", name)
+        return "skipped"
+    if size > MAX_FILE_BYTES:
+        logger.warning("Skipping %s: %s bytes is larger than the %s byte limit", name, size, MAX_FILE_BYTES)
+        return "skipped"
+
+    event_time = data.get("timeCreated") or now_iso()
+    try:
+        process_object(bucket, name, event_time)
+    except TransientError:
+        logger.exception("Temporary failure on gs://%s/%s - Google Cloud will retry this event", bucket, name)
+        raise
+    except Exception as error:  # noqa: BLE001
+        if is_google_transient(error):
+            logger.exception("Temporary Google Cloud error on gs://%s/%s - will retry", bucket, name)
+            raise TransientError(str(error)) from error
+        logger.exception("Permanent failure on gs://%s/%s - not retrying", bucket, name)
+        return "failed"
+    return "processed"
 
 
-def handle_sqs_message(message):
-    body = json.loads(message["body"])
-
-    # When S3 notifications are first connected, S3 sends a test message. Ignore it.
-    if body.get("Event") == "s3:TestEvent":
-        logger.info("Skipping S3 test event")
-        return
-
-    for record in body.get("Records", []):
-        bucket = record["s3"]["bucket"]["name"]
-        # Keys arrive URL-encoded: "my file.json" becomes "my+file.json"
-        key = unquote_plus(record["s3"]["object"]["key"])
-        size = record["s3"]["object"].get("size", 0)
-        event_time = record.get("eventTime") or now_iso()
-
-        if key.endswith("/") or size == 0:
-            logger.info("Skipping folder placeholder or empty file: %s", key)
-            continue
-        if size > MAX_FILE_BYTES:
-            logger.warning("Skipping %s: %s bytes is larger than the %s byte limit", key, size, MAX_FILE_BYTES)
-            continue
-
-        process_object(bucket, key, event_time)
+def is_google_transient(error):
+    """Storage/Firestore errors such as 'service unavailable' or 'deadline exceeded' are worth retrying."""
+    return type(error).__name__ in {
+        "ServiceUnavailable", "DeadlineExceeded", "InternalServerError", "TooManyRequests",
+        "GatewayTimeout", "BadGateway", "Aborted", "ResourceExhausted", "RetryError", "ConnectionError",
+    }
 
 
 # ---------------------------------------------------------------------------
 # Core pipeline steps
 # ---------------------------------------------------------------------------
-def process_object(bucket, key, event_time):
-    logger.info("Processing s3://%s/%s", bucket, key)
-    raw_bytes = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+def process_object(bucket, name, event_time):
+    logger.info("Processing gs://%s/%s", bucket, name)
+    raw_bytes = storage_client().bucket(bucket).blob(name).download_as_bytes()
     messages = split_into_messages(raw_bytes.decode("utf-8", errors="replace"))
-    logger.info("Found %d message(s) in %s", len(messages), key)
+    logger.info("Found %d message(s) in %s", len(messages), name)
 
     for index, message_text in enumerate(messages):
-        record_id = make_record_id(bucket, key, index)
+        record_id = make_record_id(bucket, name, index)
         started = time.monotonic()
         analysis = call_gemini(message_text[:MAX_TEXT_CHARS])
         pace(started)
-        item = build_item(record_id, bucket, key, event_time, message_text, analysis)
-        save_item(bucket, item)
+        item = build_item(record_id, bucket, name, event_time, message_text, analysis)
+        save_item(item)
         logger.info(
             "Saved %s student=%s risk=%s/%s stressor=%s",
             record_id,
@@ -251,26 +279,17 @@ def make_record_id(bucket, key, index):
 # Gemini
 # ---------------------------------------------------------------------------
 def get_api_key():
-    """Read the Gemini key from SSM Parameter Store once per Lambda container.
+    """The Gemini key comes from Secret Manager, which Cloud Run exposes as the GEMINI_API_KEY variable.
 
-    For local testing you can set GEMINI_API_KEY instead.
+    On a laptop, set GEMINI_API_KEY yourself (see scripts/test_gemini_key.py).
     """
-    global _api_key_cache
-    if _api_key_cache:
-        return _api_key_cache
-    env_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if env_key:  # a blank or whitespace-only value means "not set, use SSM"
-        _api_key_cache = env_key
-        return _api_key_cache
-    try:
-        response = ssm.get_parameter(Name=GEMINI_API_KEY_PARAM, WithDecryption=True)
-    except Exception as error:
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not key:
         raise RuntimeError(
-            f"Could not read the Gemini API key from SSM parameter '{GEMINI_API_KEY_PARAM}'. "
-            "Did you run the 'aws ssm put-parameter' step in the same region as this stack?"
-        ) from error
-    _api_key_cache = response["Parameter"]["Value"].strip()
-    return _api_key_cache
+            "GEMINI_API_KEY is not set. In Google Cloud, check the function was deployed with "
+            "--set-secrets=GEMINI_API_KEY=gemini-api-key:latest. On a laptop, set the variable first."
+        )
+    return key
 
 
 def call_gemini(message_text):
@@ -294,13 +313,13 @@ def call_gemini(message_text):
         )
         try:
             with urllib.request.urlopen(request, timeout=GEMINI_TIMEOUT_SECONDS) as response:
-                return parse_gemini_response(json.loads(response.read()))
+                body = json.loads(response.read())
         except urllib.error.HTTPError as error:
             full_detail = error.read().decode("utf-8", errors="replace")[:5000]
             detail = full_detail[:600]
             if error.code == 429 and is_daily_quota(full_detail):
-                # Waiting a minute won't help when the whole day's quota is used up.
-                raise RuntimeError(
+                # Waiting a minute won't help; Google Cloud keeps retrying with longer gaps until it resets.
+                raise TransientError(
                     "Gemini daily free-tier quota used up. It resets at midnight Pacific time "
                     "(4pm Malaysia time). Details: " + detail
                 ) from error
@@ -313,15 +332,23 @@ def call_gemini(message_text):
                 logger.warning("Gemini HTTP %s (attempt %d), retrying in %.1fs", error.code, attempt, wait)
                 time.sleep(wait)
                 continue
-            raise RuntimeError(explain_gemini_error(error.code, detail)) from error
+            error_class = TransientError if retryable else RuntimeError
+            raise error_class(explain_gemini_error(error.code, detail)) from error
         except (urllib.error.URLError, TimeoutError) as error:
             if attempt < GEMINI_ATTEMPTS:
                 wait = 2 ** attempt + random.uniform(0, 1)
                 logger.warning("Network error calling Gemini (attempt %d), retrying in %.1fs: %s", attempt, wait, error)
                 time.sleep(wait)
                 continue
-            raise RuntimeError(f"Could not reach Gemini after {GEMINI_ATTEMPTS} attempts: {error}") from error
-    raise RuntimeError("Gemini call failed")  # not reached; keeps linters happy
+            raise TransientError(f"Could not reach Gemini after {GEMINI_ATTEMPTS} attempts: {error}") from error
+
+        try:
+            return parse_gemini_response(body)
+        except RuntimeError as error:
+            if "valid JSON" in str(error):
+                raise TransientError(str(error)) from error  # a retry usually fixes a garbled answer
+            raise  # blocked or empty answer: retrying will not help
+    raise TransientError("Gemini call failed")  # not reached; keeps linters happy
 
 
 def pace(started):
@@ -344,11 +371,11 @@ def is_daily_quota(detail):
 
 def explain_gemini_error(status, detail):
     hints = {
-        400: "Bad request. If the message says 'API key not valid', re-create the SSM parameter with the correct key. "
-        "If it mentions the model, check the GeminiModel parameter spelling.",
+        400: "Bad request. If the message says 'API key not valid', update the gemini-api-key secret "
+        "and redeploy. If it mentions the model, check the GEMINI_MODEL setting.",
         403: "Permission denied. The API key may be restricted or the Gemini API is not enabled for its project.",
-        404: "Model not found. Check the GeminiModel parameter (e.g. gemini-3.1-flash-lite).",
-        429: "Rate limit or quota exceeded. Wait a minute, lower MaximumConcurrency, or upload fewer files at once.",
+        404: "Model not found. Check the GEMINI_MODEL setting (e.g. gemini-3.1-flash-lite).",
+        429: "Rate limit or quota exceeded. Google Cloud will retry this file automatically.",
     }
     return f"Gemini HTTP {status}: {hints.get(status, 'Gemini server error.')} Details: {detail}"
 
@@ -428,41 +455,33 @@ def normalise_analysis(analysis):
     }
 
 
-def build_item(record_id, bucket, key, event_time, message_text, analysis):
+
+def build_item(record_id, bucket, name, event_time, message_text, analysis):
     clean = normalise_analysis(analysis)
     event_ts = normalise_timestamp(clean.pop("message_timestamp")) or normalise_timestamp(event_time) or now_iso()
+    source_uri = f"gs://{bucket}/{name}"
     return {
         "record_id": record_id,
         **clean,
         "event_time": event_ts,
         "event_date": event_ts[:10],
         "raw_text": message_text[:MAX_STORED_TEXT],
-        "s3_uri": f"s3://{bucket}/{key}",
+        "source_uri": source_uri,
+        # Same value under the field name the dashboard already uses, so it keeps working unchanged.
+        "s3_uri": source_uri,
+        "is_live": name.startswith(LIVE_PREFIX),
         "processed_at": now_iso(),
         "model": GEMINI_MODEL,
     }
 
 
-def save_item(bucket, item):
-    dynamodb.Table(TABLE_NAME).put_item(Item=to_dynamodb(item))
-    curated_key = f"{CURATED_PREFIX}{item['event_date']}/{item['record_id']}.json"
-    s3.put_object(
-        Bucket=bucket,
-        Key=curated_key,
-        Body=json.dumps(item, ensure_ascii=False, indent=2).encode("utf-8"),
-        ContentType="application/json",
-    )
-
-
-def to_dynamodb(value):
-    """DynamoDB rejects Python floats; convert them to Decimal (recursively)."""
-    if isinstance(value, float):
-        return Decimal(str(value))
-    if isinstance(value, dict):
-        return {k: to_dynamodb(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [to_dynamodb(v) for v in value]
-    return value
+def save_item(item):
+    firestore_client().collection(FIRESTORE_COLLECTION).document(item["record_id"]).set(item)
+    if CURATED_BUCKET:
+        curated_name = f"curated/{item['event_date']}/{item['record_id']}.json"
+        storage_client().bucket(CURATED_BUCKET).blob(curated_name).upload_from_string(
+            json.dumps(item, ensure_ascii=False, indent=2), content_type="application/json"
+        )
 
 
 def normalise_timestamp(value):

@@ -1,4 +1,4 @@
-// Talks to the team's AWS API. The address comes from .env.local.
+// Talks to the team's Google Cloud API. The address comes from .env.local (or the build settings on Cloud Run).
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -19,6 +19,8 @@ export interface Student {
   current_risk_score: number;
   current_risk_level: RiskLevel;
   latest_risk_score: number;
+  peak_risk_score?: number;
+  peak_risk_level?: RiskLevel;
   average_risk_score: number;
   trend: "NEW" | "RISING" | "FALLING" | "STABLE";
   top_stressors: string[];

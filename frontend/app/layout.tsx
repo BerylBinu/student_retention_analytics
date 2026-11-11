@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </span>
                   Pipeline live
                 </p>
-                <p className="mt-1.5 leading-relaxed">AWS S3, Lambda, DynamoDB and Gemini AI in Sydney (ap-southeast-2)</p>
+                <p className="mt-1.5 leading-relaxed">Google Cloud Storage, Cloud Run functions, Firestore and Gemini AI in Singapore (asia-southeast1)</p>
               </div>
             </div>
           </aside>

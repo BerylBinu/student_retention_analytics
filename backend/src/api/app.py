@@ -1,5 +1,5 @@
 """
-API Lambda - the backend the Next.js dashboard talks to.
+API function - the backend the Next.js dashboard talks to (Google Cloud version).
 
 Routes (all return JSON):
     GET  /health                  -> {"status": "ok"}
@@ -9,64 +9,84 @@ Routes (all return JSON):
     GET  /students/{student_id}   -> one student's profile plus their full timeline
     GET  /stats                   -> totals and chart-ready numbers for the dashboard
     POST /ingest                  -> drop a new raw message into the pipeline (great for the live demo)
+    POST /admin/reset-demo        -> delete live-demo messages (needs the X-Admin-Token header)
 
-For a hackathon-sized dataset (hundreds or a few thousand rows) we simply read the whole
-table and aggregate in Python. That keeps the code easy to follow.
+Runs as a Cloud Run function (see main.py). Data is read from Firestore; /ingest writes to the
+raw Cloud Storage bucket, which triggers the processor function. For a hackathon-sized dataset
+(hundreds or a few thousand documents) we simply read the whole collection and aggregate in Python.
 """
 
-import base64
+import hmac
 import json
 import logging
 import os
 import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from decimal import Decimal
 
-import boto3
+logger = logging.getLogger("api")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-TABLE_NAME = os.environ.get("TABLE_NAME", "")
-DATA_BUCKET = os.environ.get("DATA_BUCKET", "")
-INGEST_PREFIX = os.environ.get("INGEST_PREFIX", "incoming/live/")
+FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION", "insights")
+RAW_BUCKET = os.environ.get("RAW_BUCKET", "")
+INGEST_PREFIX = "incoming/live/"
 MAX_SCAN_ITEMS = 5000
 MAX_INGEST_CHARS = 10_000
 
 RISK_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 URGENCY_ORDER = {"ROUTINE": 0, "FOLLOW_UP_THIS_WEEK": 1, "CONTACT_WITHIN_24H": 2, "IMMEDIATE": 3}
 
-dynamodb = boto3.resource("dynamodb")
-s3 = boto3.client("s3")
+_storage_client = None
+_firestore_client = None
+
+
+def storage_client():
+    global _storage_client
+    if _storage_client is None:
+        from google.cloud import storage
+
+        _storage_client = storage.Client()
+    return _storage_client
+
+
+def firestore_client():
+    global _firestore_client
+    if _firestore_client is None:
+        from google.cloud import firestore
+
+        _firestore_client = firestore.Client()
+    return _firestore_client
 
 
 # ---------------------------------------------------------------------------
-# Entry point and routing
+# Routing (called from main.py with the parts of the HTTP request)
 # ---------------------------------------------------------------------------
-def lambda_handler(event, context):
-    route = event.get("routeKey", "")
-    params = event.get("queryStringParameters") or {}
-    path_params = event.get("pathParameters") or {}
-    logger.info("Request %s %s", route, params)
+def handle_request(method, path, params=None, body_text="", headers=None):
+    """Returns (status_code, body_dict)."""
+    params = params or {}
+    headers = {k.lower(): v for k, v in (headers or {}).items()}
+    path = "/" + path.strip("/")
+    logger.info("Request %s %s %s", method, path, params)
 
     try:
-        if route == "GET /health":
-            return respond(200, {"status": "ok", "time": now_iso()})
-        if route == "GET /insights":
-            return respond(200, list_insights(params))
-        if route == "GET /students":
-            return respond(200, list_students())
-        if route == "GET /students/{student_id}":
-            return get_student(path_params.get("student_id", ""))
-        if route == "GET /stats":
-            return respond(200, get_stats())
-        if route == "POST /ingest":
-            return ingest(event)
-        return respond(404, {"error": f"Unknown route: {route}"})
+        if method == "GET" and path == "/health":
+            return 200, {"status": "ok", "time": now_iso()}
+        if method == "GET" and path == "/insights":
+            return 200, list_insights(params)
+        if method == "GET" and path == "/students":
+            return 200, list_students()
+        if method == "GET" and path.startswith("/students/") and path.count("/") == 2:
+            return get_student(path.split("/")[2])
+        if method == "GET" and path == "/stats":
+            return 200, get_stats()
+        if method == "POST" and path == "/ingest":
+            return ingest(body_text)
+        if method == "POST" and path == "/admin/reset-demo":
+            return reset_demo(headers.get("x-admin-token", ""))
+        return 404, {"error": f"Unknown route: {method} {path}"}
     except Exception:  # noqa: BLE001
-        logger.exception("Unhandled error for %s", route)
-        return respond(500, {"error": "Internal server error. Check the ApiFunction logs in CloudWatch."})
+        logger.exception("Unhandled error for %s %s", method, path)
+        return 500, {"error": "Internal server error. Check the retention-api logs in Google Cloud."}
 
 
 # ---------------------------------------------------------------------------
@@ -95,14 +115,16 @@ def list_students():
     return {"count": len(students), "items": students}
 
 
+
+
 def get_student(student_id):
     student_id = student_id.strip().upper()
     records = [i for i in scan_all() if i.get("student_id") == student_id]
     if not records:
-        return respond(404, {"error": f"No records for student {student_id}"})
+        return 404, {"error": f"No records for student {student_id}"}
     profile = summarise_student(student_id, records)
     profile["timeline"] = sorted(records, key=lambda r: r.get("event_time", ""))
-    return respond(200, profile)
+    return 200, profile
 
 
 def get_stats():
@@ -144,30 +166,28 @@ def get_stats():
     }
 
 
-def ingest(event):
-    """Accept a raw message from the dashboard and drop it into S3 incoming/live/.
 
-    The S3 -> SQS -> Processor pipeline then picks it up exactly like any other file,
+
+def ingest(body_text):
+    """Accept a raw message from the dashboard and drop it into the raw bucket under incoming/live/.
+
+    The Cloud Storage -> Eventarc -> processor pipeline then picks it up exactly like any other file,
     so the frontend can poll GET /insights a few seconds later to see the result.
     """
-    if not DATA_BUCKET:
-        return respond(500, {"error": "DATA_BUCKET environment variable is not set"})
-
-    raw_body = event.get("body") or ""
-    if event.get("isBase64Encoded"):
-        raw_body = base64.b64decode(raw_body).decode("utf-8", errors="replace")
+    if not RAW_BUCKET:
+        return 500, {"error": "RAW_BUCKET environment variable is not set"}
     try:
-        body = json.loads(raw_body) if raw_body else {}
+        body = json.loads(body_text) if body_text else {}
     except json.JSONDecodeError:
-        return respond(400, {"error": "Body must be JSON, e.g. {\"student_id\": \"TP012345\", \"text\": \"...\"}"})
+        return 400, {"error": "Body must be JSON, e.g. {\"student_id\": \"TP012345\", \"text\": \"...\"}"}
     if not isinstance(body, dict):
-        return respond(400, {"error": "Body must be a JSON object"})
+        return 400, {"error": "Body must be a JSON object"}
 
     text = str(body.get("text") or "").strip()
     if not text:
-        return respond(400, {"error": "Field 'text' is required"})
+        return 400, {"error": "Field 'text' is required"}
     if len(text) > MAX_INGEST_CHARS:
-        return respond(400, {"error": f"Field 'text' must be at most {MAX_INGEST_CHARS} characters"})
+        return 400, {"error": f"Field 'text' must be at most {MAX_INGEST_CHARS} characters"}
 
     document = {
         "channel": str(body.get("source") or "dashboard_demo")[:50],
@@ -177,29 +197,44 @@ def ingest(event):
         "message": text,
     }
     key = f"{INGEST_PREFIX}{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:8]}.json"
-    s3.put_object(
-        Bucket=DATA_BUCKET,
-        Key=key,
-        Body=json.dumps(document, ensure_ascii=False).encode("utf-8"),
-        ContentType="application/json",
+    storage_client().bucket(RAW_BUCKET).blob(key).upload_from_string(
+        json.dumps(document, ensure_ascii=False), content_type="application/json"
     )
-    return respond(202, {"status": "queued", "s3_key": key, "hint": "Poll GET /insights in ~10 seconds"})
+    # "s3_key" repeats "object_key" under the name the dashboard already uses.
+    return 202, {"status": "queued", "object_key": key, "s3_key": key, "hint": "Poll GET /insights in ~10 seconds"}
+
+
+def reset_demo(token):
+    """Delete messages sent through the Live demo page, keeping the original data.
+
+    Protected by a secret token (stored in Secret Manager as admin-token), because the API is public.
+    """
+    expected = os.environ.get("ADMIN_TOKEN", "").strip()
+    if not expected or not hmac.compare_digest(token.strip().encode(), expected.encode()):
+        return 403, {"error": "Missing or wrong X-Admin-Token header"}
+    collection = firestore_client().collection(FIRESTORE_COLLECTION)
+    deleted = 0
+    for snapshot in collection.stream():
+        item = snapshot.to_dict() or {}
+        if item.get("is_live") or INGEST_PREFIX in str(item.get("source_uri") or item.get("s3_uri") or ""):
+            collection.document(snapshot.id).delete()
+            deleted += 1
+    remaining = sum(1 for _ in collection.stream())
+    logger.info("Demo reset: deleted %d live message(s), %d remain", deleted, remaining)
+    return 200, {"deleted": deleted, "remaining": remaining}
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 def scan_all():
-    """Read every row (following DynamoDB's 1 MB pages) and convert Decimals to numbers."""
-    table = dynamodb.Table(TABLE_NAME)
-    items, kwargs = [], {}
-    while True:
-        page = table.scan(**kwargs)
-        items.extend(page.get("Items", []))
-        if "LastEvaluatedKey" not in page or len(items) >= MAX_SCAN_ITEMS:
+    """Read every analysed message from Firestore."""
+    items = []
+    for snapshot in firestore_client().collection(FIRESTORE_COLLECTION).stream():
+        items.append(snapshot.to_dict() or {})
+        if len(items) >= MAX_SCAN_ITEMS:
             break
-        kwargs["ExclusiveStartKey"] = page["LastEvaluatedKey"]
-    return [from_dynamodb(i) for i in items[:MAX_SCAN_ITEMS]]
+    return items
 
 
 def group_by_student(items):
@@ -288,15 +323,6 @@ def counter_to_list(counter, label):
     return [{label: key, "count": count} for key, count in counter.most_common()]
 
 
-def from_dynamodb(value):
-    """DynamoDB returns numbers as Decimal, which json.dumps cannot handle."""
-    if isinstance(value, Decimal):
-        return int(value) if value == value.to_integral_value() else float(value)
-    if isinstance(value, dict):
-        return {k: from_dynamodb(v) for k, v in value.items()}
-    if isinstance(value, (list, set, tuple)):
-        return [from_dynamodb(v) for v in value]
-    return value
 
 
 def to_int(value, default, minimum, maximum):
@@ -307,12 +333,6 @@ def to_int(value, default, minimum, maximum):
     return max(minimum, min(maximum, number))
 
 
-def respond(status, body):
-    return {
-        "statusCode": status,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body, ensure_ascii=False, default=str),
-    }
 
 
 def now_iso():

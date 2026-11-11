@@ -1,6 +1,6 @@
 # Frontend: At-Risk Student Dashboard
 
-A Next.js dashboard that shows the results of the Student Retention Analytics Engine. It reads live data from the team's AWS API (see [`../backend`](../backend)) and helps student support staff answer three questions:
+A Next.js dashboard that shows the results of the Student Retention Analytics Engine. It reads live data from the team's Google Cloud API (see [`../backend`](../backend)) and helps student support staff answer three questions:
 
 1. **Who needs help right now?** Students ranked by risk, with the most serious cases first.
 2. **Why?** The stressors the AI found (financial, academic pressure, burnout and so on) and the exact phrases that triggered each alert.
@@ -17,8 +17,8 @@ A Next.js dashboard that shows the results of the Student Retention Analytics En
 
 ### How the live demo works
 
-1. The message is sent to `POST /ingest`, which saves it to the S3 data lake.
-2. S3 triggers the processing Lambda, which asks Gemini to analyse it and stores the result in DynamoDB.
+1. The message is sent to `POST /ingest`, which saves it to the Cloud Storage data lake.
+2. Cloud Storage triggers the processing Cloud Run function (through Eventarc), which asks Gemini to analyse it and stores the result in Firestore.
 3. The page checks `GET /insights` every 4 seconds until the new result appears (usually 10 to 60 seconds), then shows it.
 
 Three ready-made messages (Aisyah, Chen Wei and Priya) match the files in `backend/mock_data/samples/live_demo`.
@@ -39,7 +39,7 @@ npm install
 Create a file called `.env.local` in the `frontend` folder with the API address from the backend deployment (the `ApiBaseUrl` stack output, no trailing slash):
 
 ```
-NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com
+NEXT_PUBLIC_API_BASE_URL=https://retention-api-XXXXXXXXXX.asia-southeast1.run.app
 ```
 
 Then start the app:
@@ -58,6 +58,12 @@ npm run start
 ```
 
 > **Windows PowerShell tip:** if `npm` fails with "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or use `npm.cmd` instead of `npm`.
+
+## Deploy it to Google Cloud Run
+
+The public dashboard runs on Cloud Run, Google's service for hosting web apps. The steps (including how
+the API address is passed in at build time) are in [`../backend/README.md`](../backend/README.md),
+Part 5. `.gcloudignore` keeps `node_modules`, `.next` and `.env*` files out of the upload.
 
 ## Folder map
 
@@ -85,7 +91,7 @@ frontend/
 - **Live data, no caching.** Every page fetches fresh data from the API when it opens, so new AI results show up straight away. `cacheComponents` is turned off in `next.config.ts` for this reason.
 - **No chart library.** The charts (donut, bars, risk timeline) are plain SVG and Tailwind, so there are fewer dependencies to install.
 - **Friendly labels.** API values like `BURNOUT_MENTAL_HEALTH` and `FOLLOW_UP_THIS_WEEK` are turned into readable text in `lib/api.ts`. Each risk level and stressor has one colour, used the same way on every page.
-- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's score is their most serious signal, so one urgent message is enough to flag them.
+- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's current score comes from their most recent message, so a student who gets help moves down the list. Safety rule (set in the backend): anyone flagged for possible self-harm stays Critical until a counsellor follows up. The detail page also shows the peak score for context.
 
 ## Built with
 

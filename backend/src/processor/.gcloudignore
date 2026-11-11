@@ -1,0 +1,4 @@
+# Files not uploaded when deploying this function
+__pycache__/
+*.pyc
+.env

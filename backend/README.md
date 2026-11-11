@@ -1,342 +1,357 @@
-# Backend: Student Retention Analytics Engine (cloud + data pipeline)
+# Backend: Student Retention Analytics Engine (Google Cloud data pipeline)
 
-This folder is the whole AWS side of the project. One command deploys it.
-The Next.js dashboard only needs the **API URL** this produces.
+This folder is the whole Google Cloud side of the project: the data lake, the AI processing step, the
+database and the API the dashboard reads. The Next.js dashboard (`../frontend`) only needs the
+**API URL** this produces.
 
 ```
-                    ┌──────────────────────── AWS (ap-southeast-2) ─────────────────────────┐
- Mock Zendesk /     │                                                                        │
- Moodle / email ──► │  S3 data lake          SQS queue          Processor Lambda             │
- files (upload)     │  incoming/  ───────►  (buffer +   ───────► reads file ──► Gemini API ──┼──► Google
-                    │                        retries)            cleans answer               │
- Dashboard "add  ──►│  HTTP API ──► API Lambda ──► writes to incoming/live/                  │
- message" button    │                                            │                           │
-                    │                                            ▼                           │
- Next.js dashboard ◄┼── HTTP API ◄── API Lambda ◄──── DynamoDB (insights)   S3 curated/      │
-                    └────────────────────────────────────────────────────────────────────────┘
+                       ┌──────────────────────── Google Cloud (asia-southeast1, Singapore) ─────────────────────────┐
+ Mock Zendesk /        │                                                                                             │
+ Moodle / email  ────► │  Cloud Storage          Eventarc             Cloud Run function           Gemini API ───────┼──► Google AI
+ files (upload)        │  raw bucket      ────► "file created" ────►  retention-processor  ───────► (risk analysis)  │
+                       │  incoming/              (auto-retry)          reads file, cleans answer                     │
+ Dashboard "Live  ───► │  Cloud Run function ──► writes incoming/live/       │                                       │
+ demo" page            │  retention-api                                      ▼                                       │
+                       │       ▲                                   Firestore (insights)    Cloud Storage curated     │
+ Next.js dashboard  ◄──┼── retention-api ◄───────────────────────── reads ┘                bucket (clean JSON)       │
+ on Cloud Run          │                                                                                             │
+                       │  Secret Manager: gemini-api-key, admin-token     Cloud Logging: every function's output     │
+                       └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## What each piece does (plain English)
 
 | Piece | What it is | Why we use it |
 |---|---|---|
-| **S3 bucket** | Cloud folder storage. `incoming/` holds raw files; `curated/` holds cleaned results. | This is our "data lake": raw data is kept as-is, so we can re-process it later. |
-| **SQS queue** | A waiting line for work. S3 adds a message every time a file lands. | If you upload 20 files at once, the queue feeds them to Lambda 2 at a time so we don't hit Gemini's rate limit. Failed files retry automatically. |
-| **Dead-letter queue (DLQ)** | Where a message goes after failing 3 times. | Nothing is silently lost; you can see what broke. |
-| **Processor Lambda** | Python code that runs only when there is work. | Sends each message to Gemini, checks the answer, saves it. You pay per run, no server to manage. |
-| **Gemini API** | Google's AI model. | Turns messy text into structured JSON: risk score, stressor, evidence, recommended action. |
-| **SSM Parameter Store** | Encrypted storage for settings. | Keeps the Gemini key out of the code and out of GitHub. |
-| **DynamoDB** | A fast NoSQL database. | Stores one row per analysed message for the dashboard. |
-| **HTTP API + API Lambda** | Public web addresses (`/students`, `/stats`, …). | How the React dashboard reads data, and how the demo adds a live message. |
-| **AWS SAM (`template.yaml`)** | "Infrastructure as code": one file describing all of the above. | One command creates everything, including permissions (IAM roles) and CORS, which are the two things beginners most often get wrong when clicking in the console. |
+| **Cloud Storage, raw bucket** | Cloud folder storage. `incoming/` holds raw messages exactly as they arrived. | The "data lake": originals are never changed, so we can re-analyse them later with a better prompt. |
+| **Cloud Storage, curated bucket** | Cleaned, structured JSON for every analysed message. | The curated zone of the data lake, ready for other tools (e.g. BigQuery) later. |
+| **Eventarc** | Google's event router. When a file lands in the raw bucket, it calls the processor. | Event-driven: no polling, no servers. Failed events are **retried automatically** with growing gaps for up to 24 hours. |
+| **Cloud Run function `retention-processor`** | Python code that runs only when there is work. | Sends each message to Gemini, checks the answer, saves it. At most **2 copies run at once**, which keeps us under Gemini's free-tier limit. |
+| **Gemini API** | Google's AI model. | Turns messy text into structured JSON: risk score, stressor, quoted evidence, recommended action. |
+| **Firestore** | Google's serverless NoSQL database. | Stores one document per analysed message for the dashboard. |
+| **Cloud Run function `retention-api`** | The public web address the dashboard calls (`/students`, `/stats`, …). | Reads Firestore and returns ready-to-chart JSON; `/ingest` adds live demo messages. |
+| **Secret Manager** | Encrypted storage for secrets. | Holds the Gemini key and the demo-reset token, so neither is in the code or on GitHub. |
+| **Service account `retention-fn`** | The identity both functions run as. | Least privilege: it can only use Firestore, the buckets, the two secrets and logging. |
+| **Cloud Logging** | Everything the functions print. | How we see what happened (`gcloud functions logs read …`). |
 
 ## Folder map
 
 ```
 backend/
-├── template.yaml                 # all AWS resources (read the comments!)
 ├── src/
-│   ├── processor/app.py          # S3 -> Gemini -> DynamoDB
-│   └── api/app.py                # dashboard API
-├── mock_data/
-│   └── generate_mock_data.py     # creates fictional student messages in 4 formats
-├── scripts/
-│   └── test_gemini_key.py        # checks your Gemini key and previews AI output locally
-└── tests/
-    └── test_offline.py           # 13 tests, no AWS or internet needed
+│   ├── processor/
+│   │   ├── main.py            # entry point Google Cloud calls for each new file
+│   │   ├── app.py             # the real work: Gemini prompt, safety rules, saving (Person B owns SYSTEM_PROMPT)
+│   │   └── requirements.txt   # Google Cloud libraries the function needs
+│   └── api/
+│       ├── main.py            # entry point for web requests (CORS, JSON)
+│       ├── app.py             # routes: /students, /stats, /insights, /ingest, /admin/reset-demo
+│       └── requirements.txt
+├── mock_data/                 # fictional student messages in 4 messy formats
+├── eval/                      # Person B's answer key and accuracy test for the Gemini prompt
+├── scripts/test_gemini_key.py # checks your Gemini key and previews AI output locally
+└── tests/test_offline.py      # 25 tests, no Google Cloud or internet needed
 ```
 
 ---
 
 # Step-by-step setup
 
-Total time: about 60-90 minutes the first time. **Only one person on the team needs to do Parts 0-4.**
-Everyone else just uses the API URL.
+Total time: about 60-90 minutes the first time. **Only one person (Person A) deploys.** Everyone else
+uses the API and dashboard URLs.
 
-> **Windows users:** use **PowerShell**. Every command below is a single line and works in PowerShell,
-> macOS Terminal and Linux, unless it says otherwise.
+> **Windows users:** use **PowerShell**. Every command below is one line unless it says otherwise.
+> Run everything from the `backend` folder unless a step says `cd` somewhere else.
 
 ## Part 0 — One-time setup
 
-### 0.1 Pick a region and set a budget alarm (5 min)
+### 0.1 Start the Google Cloud free trial (10 min)
 
-We use **Asia Pacific (Sydney) `ap-southeast-2`** for everything. Using one region matters: resources
-in different regions can't see each other, and that's the #1 cause of "it works on my side but not in AWS".
+1. Go to https://console.cloud.google.com/freetrial and sign in with your Google account.
+2. Country: **Malaysia**. Accept the terms. Add a card when asked. It's only for identity checks:
+   the free trial gives free credit and **does not charge you** unless you choose to upgrade later.
+3. Click **Start free**.
 
-> **Why Sydney and not Singapore?** AWS accounts created with the new sign-up (Google/Gmail login, no
-> credit card) are locked to one region chosen from your contact country. Malaysia and Singapore get
-> Sydney; every other region returns `explicit deny in a service control policy`. Check yours at
-> https://settings.aws.com → **Project** → **Overview** → **Additional Info** → **Region**, and if it isn't
-> `ap-southeast-2`, use your region everywhere this README says `ap-southeast-2`.
+### 0.2 Create the project (2 min)
 
-Set a budget alarm so a mistake can't cost you money silently:
+1. In the console, click the **project picker** at the top (next to the Google Cloud logo) → **New project**.
+2. Project name: `student-retention`. Click **Create**.
+3. Note the **Project ID** shown under the name (it may have numbers added, like `student-retention-471203`).
+   You'll paste it below.
+4. Check billing is attached: menu ☰ → **Billing**. It should show your free trial billing account.
+   If it says "This project has no billing account", click **Link a billing account** and pick the trial one.
 
-1. Sign in to the [AWS Console](https://console.aws.amazon.com/).
-2. In the search bar at the top, type **Budgets** and open **Billing and Cost Management → Budgets**.
-3. Click **Create budget** → choose **Use a template (simplified)** → pick **Monthly cost budget**.
-4. Budget amount: **5** (USD). Email recipients: your email. Click **Create budget**.
+### 0.3 Install the Google Cloud CLI (`gcloud`) (10 min)
 
-### 0.2 Create command-line access keys (10 min)
-
-The AWS CLI and SAM need keys to act on your account.
-
-1. Console search bar → **IAM** → left menu **Users** → **Create user**.
-2. User name: `hackathon-cli` → **Next**.
-3. Choose **Attach policies directly** → tick **AdministratorAccess** → **Next** → **Create user**.
-4. Click the new user → **Security credentials** tab → **Create access key**.
-5. Use case: **Command Line Interface (CLI)** → tick the confirmation box → **Next** → **Create access key**.
-6. Click **Download .csv file**. Keep it private. **Never paste these keys into code, Discord or GitHub.**
-
-> Admin access is fine for a short hackathon. Delete this access key after the event (see "Clean up").
-
-> **Using an AWS Academy "Learner Lab" or a university-provided account?** Those usually block creating
-> IAM roles, and the deploy will fail with `iam:CreateRole ... AccessDenied`. Tell us and we'll switch the
-> template to use the lab's existing `LabRole`.
-
-### 0.3 Install the AWS CLI (5 min)
-
-- **Windows:** download and run https://awscli.amazonaws.com/AWSCLIV2.msi
-- **macOS:** download and run https://awscli.amazonaws.com/AWSCLIV2.pkg
-- **Linux:** follow https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-
-**Close and reopen your terminal**, then:
+1. Download and run https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe
+   (macOS/Linux: https://cloud.google.com/sdk/docs/install). Keep the default options.
+2. On the last screen, leave **Run 'gcloud init'** ticked and click **Finish**. A terminal opens:
+   - It opens your browser to sign in: use the same Google account.
+   - "Pick cloud project to use": choose your project ID.
+   - If asked about a default region/zone, you can skip it (we pass the region in every command).
+3. **Close and reopen PowerShell**, then check:
 
 ```
-aws --version
+gcloud --version
+gcloud config get-value project
 ```
 
-You should see something like `aws-cli/2.x.x`. Now connect it to your account:
+The second line should print your project ID. If not: `gcloud config set project YOUR-PROJECT-ID`
 
-```
-aws configure
-```
+### 0.4 Python and a Gemini key
 
-Answer the four prompts:
-
-```
-AWS Access Key ID [None]:      <Access key ID from the .csv>
-AWS Secret Access Key [None]:  <Secret access key from the .csv>
-Default region name [None]:    ap-southeast-2
-Default output format [None]:  json
-```
-
-Check it works (it should print your account number, not an error):
-
-```
-aws sts get-caller-identity
-```
-
-### 0.4 Install the AWS SAM CLI (5 min)
-
-- **Windows:** download and run https://github.com/aws/aws-sam-cli/releases/latest/download/AWS_SAM_CLI_64_PY3.msi
-- **macOS (Homebrew):** `brew install aws-sam-cli`
-- **Other:** https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
-
-Close and reopen the terminal, then:
-
-```
-sam --version
-```
-
-### 0.5 Python for the local scripts (5 min)
-
-You need Python 3.10 or newer **only to run the helper scripts on your laptop**. (The cloud uses its own
-Python 3.13; your local version does not need to match.)
-
-```
-python --version
-```
-
-On macOS/Linux use `python3` instead of `python` in every command below.
-On Windows, if typing `python` opens the Microsoft Store, install Python from https://www.python.org/downloads/
-and **tick "Add python.exe to PATH"** on the first installer screen.
-
-### 0.6 Get a Gemini API key (3 min)
-
-1. Go to https://aistudio.google.com/ and sign in with a Google account.
-2. Click **Get API key** → **Create API key** (create or pick a Google Cloud project when asked).
-3. Copy the key (it starts with `AIza`). Treat it like a password.
+- Python 3.10+ for the local scripts: `python --version`.
+- Gemini API key from https://aistudio.google.com → **Get API key**. Treat it like a password.
 
 ---
 
-## Part 1 — Test everything on your laptop first (10 min)
-
-Open a terminal **inside the `backend` folder** (all commands from here on assume this).
-
-**1. Create the mock data**
+## Part 1 — Test everything on your laptop first (5 min)
 
 ```
 python mock_data/generate_mock_data.py
+python -m unittest discover -s tests
 ```
 
-Expected: `Wrote 20 historical files ...` and `Wrote 3 live demo files ...`.
-Open a few files in `mock_data/samples/` to see the four messy formats.
+The second command should end with `OK` (25 tests). Then check your Gemini key:
 
-**2. Run the offline tests** (checks the logic without AWS or internet)
-
-```
-python -m unittest discover -s tests -v
-```
-
-Expected last line: `OK` (13 tests).
-
-**3. Test your Gemini key and preview the AI output**
-
-Windows PowerShell:
 ```
 $env:GEMINI_API_KEY="paste-your-key-here"
 python scripts/test_gemini_key.py
 ```
 
-macOS / Linux:
-```
-export GEMINI_API_KEY="paste-your-key-here"
-python3 scripts/test_gemini_key.py
-```
-
-Expected: a JSON block with `risk_score`, `primary_stressor: "FINANCIAL"`, evidence phrases, and
-`Success! Your key works.` Try the crisis example too:
-
-```
-python scripts/test_gemini_key.py mock_data/samples/live_demo/priya_crisis.json
-```
-
-It should come back `CRITICAL`, `IMMEDIATE`, `self_harm_indicator: true`.
-
-If this step fails, fix it now (see Troubleshooting); deploying won't fix a bad key.
+Expected: a JSON block with `risk_score`, `primary_stressor`, evidence phrases and `Success! Your key works.`
 
 ---
 
-## Part 2 — Give the Gemini key to AWS (2 min)
+## Part 2 — One-time Google Cloud setup (15 min)
 
-**Why:** the Lambda needs the key, but keys must never be in code or GitHub. There are two ways;
-try A first, and use B if A gives an `AccessDeniedException ... service control policy` error.
+### 2.0 Session variables (run this block in EVERY new PowerShell window)
 
-**A. SSM Parameter Store (preferred when allowed).** Encrypted storage that only our Lambda can read.
+Replace `your-project-id` with your Project ID the first time. These short names are used by every command below.
 
 ```
-aws ssm put-parameter --name "/retention/gemini-api-key" --type SecureString --value "paste-your-key-here" --region ap-southeast-2
+$PROJECT = "your-project-id"
+$REGION  = "asia-southeast1"
+$RAW     = "$PROJECT-raw"
+$CURATED = "$PROJECT-curated"
+$SA      = "retention-fn@$PROJECT.iam.gserviceaccount.com"
+gcloud config set project $PROJECT
 ```
 
-Expected: `{"Version": 1, "Tier": "Standard"}`. Then in Part 3 leave `GeminiApiKey` blank.
+Later (after Part 3) also run this line to get the API address:
 
-**B. Pass the key at deploy time (for sandbox / organization accounts).** Student and event AWS accounts
-(AWS Academy, AWS Educate, accounts created without a credit card) often block SSM with a
-*service control policy*, a rule set above your account that even admin users can't override.
-If you got that error, skip the command above. In Part 3, paste your key at the `Parameter GeminiApiKey`
-prompt. It's stored as an environment variable on the processor Lambda.
+```
+$API = gcloud functions describe retention-api --region=$REGION --format="value(serviceConfig.uri)"
+```
 
-> Trade-off of B: anyone who can open that Lambda in the AWS console can read the key. Fine for a
-> hackathon sandbox only you use; for real use, prefer A. `samconfig.toml` may also keep the key, so it is
-> in `.gitignore`. **Never commit `samconfig.toml`.**
+### 2.1 Turn on the Google Cloud services we use (2 min)
+
+```
+gcloud services enable cloudfunctions.googleapis.com run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com eventarc.googleapis.com pubsub.googleapis.com storage.googleapis.com firestore.googleapis.com secretmanager.googleapis.com logging.googleapis.com
+```
+
+Wait for `Operation ... finished successfully`.
+
+### 2.2 Create the Firestore database (1 min)
+
+```
+gcloud firestore databases create --location=$REGION
+```
+
+### 2.3 Create the two data lake buckets (1 min)
+
+```
+gcloud storage buckets create gs://$RAW --location=$REGION --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets create gs://$CURATED --location=$REGION --uniform-bucket-level-access --public-access-prevention
+```
+
+The bucket and the processor **must be in the same region** (`asia-southeast1`), or the trigger can't be created.
+
+### 2.4 Store the secrets in Secret Manager (2 min)
+
+**Why:** keys must never be in code or GitHub. Secret Manager keeps them encrypted, and only our
+functions' service account may read them.
+
+Gemini key (writing it to a temporary file avoids an extra line break, then the file is deleted):
+
+```
+$k = "paste-your-gemini-key-here"
+Set-Content -Path key.txt -Value $k -NoNewline -Encoding ascii
+gcloud secrets create gemini-api-key --data-file=key.txt
+Remove-Item key.txt
+```
+
+Demo-reset token (a random password that protects `POST /admin/reset-demo`):
+
+```
+$ADMIN = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
+Set-Content -Path admin.txt -Value $ADMIN -NoNewline -Encoding ascii
+gcloud secrets create admin-token --data-file=admin.txt
+Remove-Item admin.txt
+```
+
+### 2.5 Create the service account and grant permissions (3 min)
+
+The functions run as `retention-fn`, which gets only the permissions it needs:
+
+```
+gcloud iam service-accounts create retention-fn --display-name="Student retention functions"
+```
+
+Wait ~10 seconds (new accounts take a moment to appear), then grant its roles:
+
+```
+foreach ($role in "roles/datastore.user","roles/storage.objectAdmin","roles/secretmanager.secretAccessor","roles/eventarc.eventReceiver","roles/run.invoker","roles/logging.logWriter") { gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$SA" --role=$role --condition=None --quiet | Out-Null; Write-Host "granted $role" }
+```
+
+Let Cloud Storage send "file created" events (Google's docs require this for storage triggers):
+
+```
+$GCS_SA = gcloud storage service-agent --project=$PROJECT
+gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$GCS_SA" --role=roles/pubsub.publisher --condition=None --quiet | Out-Null
+```
+
+Let Cloud Build build our code (needed on some newer projects; harmless otherwise):
+
+```
+$NUM = gcloud projects describe $PROJECT --format="value(projectNumber)"
+gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$NUM-compute@developer.gserviceaccount.com" --role=roles/cloudbuild.builds.builder --condition=None --quiet | Out-Null
+```
+
+Permissions can take 1-2 minutes to apply. Have a drink of water, then continue.
 
 ---
 
-## Part 3 — Deploy the whole backend (5-10 min)
+## Part 3 — Deploy the backend (10 min)
 
-**Why `sam deploy` and no `sam build`:** our code only uses libraries that already exist inside Lambda,
-so there is nothing to build. Skipping `sam build` avoids the common
-`Binary validation failed for python` error when your laptop's Python version differs from 3.13.
+### 3.1 The processor (AI step)
 
 ```
-sam deploy --guided
+gcloud functions deploy retention-processor --gen2 --runtime=python313 --region=$REGION --source=src/processor --entry-point=handle_upload --trigger-bucket=$RAW --service-account=$SA --trigger-service-account=$SA --retry --max-instances=2 --concurrency=1 --timeout=300s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,CURATED_BUCKET=$CURATED,GEMINI_MODEL=gemini-3.1-flash-lite,MIN_SECONDS_PER_CALL=9" --set-secrets="GEMINI_API_KEY=gemini-api-key:latest"
 ```
 
-Answer the prompts exactly like this (press Enter to accept a value in brackets):
+What the important flags mean:
+- `--trigger-bucket=$RAW` — run for every new file in the raw bucket (the code ignores anything outside `incoming/`).
+- `--retry` — if a file fails for a temporary reason (rate limit, Gemini busy), Google Cloud retries it later.
+- `--max-instances=2 --concurrency=1` and `MIN_SECONDS_PER_CALL=9` — at most ~13 Gemini calls a minute (free tier allows 15).
+- `--set-secrets` — the Gemini key is read from Secret Manager, never stored in the code.
 
-| Prompt | Answer |
-|---|---|
-| Stack Name | `student-retention` |
-| AWS Region | `ap-southeast-2` |
-| Parameter GeminiModel | Enter (keeps `gemini-3.1-flash-lite`) |
-| Parameter GeminiApiKeyParameterName | Enter |
-| Parameter GeminiApiKey | Option A: just Enter (blank). Option B: paste your key (nothing shows as you paste; that's normal), then Enter |
-| Parameter AllowedOrigin | Enter (keeps `*`) |
-| Confirm changes before deploy | `y` |
-| Allow SAM CLI IAM role creation | `Y` |
-| Disable rollback | `N` |
-| **ApiFunction has no authentication. Is this okay?** (may be asked several times) | `y` every time |
-| Save arguments to configuration file | `Y` |
-| SAM configuration file | Enter |
-| SAM configuration environment | Enter |
-| Deploy this changeset? | `y` |
+The first deploy takes 3-5 minutes. If it fails with a permission error mentioning **Eventarc** or a
+**service agent**, wait 2 minutes and run the same command again (Google's docs note the first trigger in a
+new project can fail while permissions finish setting up).
 
-Wait for `Successfully created/updated stack - student-retention`. At the end SAM prints **Outputs**.
-Copy these somewhere (or print them again any time):
+### 3.2 The API
 
 ```
-aws cloudformation describe-stacks --stack-name student-retention --query "Stacks[0].Outputs" --output table
+gcloud functions deploy retention-api --gen2 --runtime=python313 --region=$REGION --source=src/api --entry-point=handle_http --trigger-http --allow-unauthenticated --service-account=$SA --max-instances=5 --timeout=60s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,RAW_BUCKET=$RAW,ALLOWED_ORIGIN=*" --set-secrets="ADMIN_TOKEN=admin-token:latest"
 ```
 
-You'll see `ApiBaseUrl` (for the frontend), `DataLakeBucketName`, `InsightsTableName`, and more.
+Get its address and test it:
 
-> `samconfig.toml` was just created and saves your answers. It is git-ignored because with option B it
-> can contain your key. Later deploys after code changes are just: `sam deploy`
-> (if it asks for `GeminiApiKey` again, paste the key again).
+```
+$API = gcloud functions describe retention-api --region=$REGION --format="value(serviceConfig.uri)"
+$API
+Invoke-RestMethod "$API/health"
+```
 
-**Quick check:** open `<ApiBaseUrl>/health` in your browser. You should see `{"status": "ok", ...}`.
+You should see `status: ok`. **`$API` is the API URL** — give it to Person C.
 
 ---
 
-## Part 4 — Feed the pipeline and watch it work (5 min)
+## Part 4 — Load the data and watch it work (5 min)
 
-**1. Upload the historical files** (replace `BUCKET` with your `DataLakeBucketName`):
-
-```
-aws s3 cp mock_data/samples/historical s3://BUCKET/incoming/historical/ --recursive
-```
-
-**Important:** files must go under `incoming/`. Anything elsewhere in the bucket is ignored on purpose.
-
-**2. Watch the processor live** (open a second terminal in the `backend` folder):
+Upload the 20 historical messages (they must go under `incoming/`):
 
 ```
-sam logs --stack-name student-retention --name ProcessorFunction --tail
+gcloud storage cp "mock_data/samples/historical/*" gs://$RAW/incoming/historical/
 ```
 
-You'll see lines like `Saved 3f9a... student=TP071234 risk=72/HIGH stressor=FINANCIAL`.
-20 files take about 1-2 minutes (2 at a time). Press `Ctrl+C` to stop watching.
+Watch progress (repeats every 20 seconds and stops at 20):
 
-**3. Check the results**
+```
+while ($true) { $c = (Invoke-RestMethod "$API/stats").total_signals; Write-Host "$(Get-Date -Format T)  analysed: $c / 20"; if ([int]$c -ge 20) { Write-Host "Done!" -ForegroundColor Green; break }; Start-Sleep 20 }
+```
 
-- Count rows: `aws dynamodb scan --table-name TABLENAME --select COUNT` → `"Count": 20`
-- In the browser open `<ApiBaseUrl>/students` and `<ApiBaseUrl>/stats`
-- Console view: search **DynamoDB** → **Tables** → your table → **Explore table items**
+It takes about 2-3 minutes. To see the processor's own log lines:
+
+```
+gcloud functions logs read retention-processor --gen2 --region=$REGION --limit=30
+```
+
+Look for `Saved ... student=TP071234 risk=67/HIGH stressor=FINANCIAL`. A line like `retrying in 60s` is
+the rate-limit handling working, not an error. Then open `$API/students` in a browser.
 
 ---
 
-## Part 5 — The live demo moment (for the video)
+## Part 5 — Deploy the dashboard to Cloud Run (10 min)
 
-Show judges a brand-new message flowing through the system in seconds.
+The dashboard is in `../frontend`. Next.js bakes `NEXT_PUBLIC_API_BASE_URL` into the app **when it is built**,
+so we pass it as a *build* setting.
 
-**Option A: upload a file**
+1. First check it builds on your laptop (catches errors before uploading):
 
 ```
-aws s3 cp mock_data/samples/live_demo/priya_crisis.json s3://BUCKET/incoming/live/
+cd ..\frontend
+npm install
+npm run build
 ```
 
-**Option B: send a message through the API** (this is what a dashboard "Add message" button would call)
+2. Deploy (from the `frontend` folder, with `$API` set):
 
-Windows PowerShell:
 ```
-Invoke-RestMethod -Method Post -Uri "https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com/ingest" -ContentType "application/json" -Body '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
-```
-
-macOS / Linux:
-```
-curl -X POST "https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com/ingest" -H "Content-Type: application/json" -d '{"student_id":"TP071234","student_name":"Aisyah Rahman","source":"zendesk","text":"I have to stop my studies, I cannot pay the fees and my family needs me to work full time."}'
+gcloud run deploy retention-dashboard --source . --region=$REGION --allow-unauthenticated --memory=1Gi --set-build-env-vars="NEXT_PUBLIC_API_BASE_URL=$API,GOOGLE_NODE_RUN_SCRIPTS=build"
 ```
 
-About 5-15 seconds later the new row shows up in `GET /insights` and the student's risk rises in `/students`.
+If it asks to create an Artifact Registry repository, answer **Y**. The build takes 3-6 minutes.
+At the end it prints a **Service URL** (`https://retention-dashboard-….run.app`). That's the public
+dashboard link for judges. To print it again:
+
+```
+gcloud run services describe retention-dashboard --region=$REGION --format="value(status.url)"
+```
+
+3. Go back to the backend folder: `cd ..\backend`
 
 ---
 
-## Part 6 — API reference for the frontend team
+## Part 6 — The live demo and resetting between takes
 
-Base URL = `ApiBaseUrl` from the stack outputs. In Next.js, put it in `.env.local`:
+**Sending live messages:** use the dashboard's **Live demo** page. Each result takes 10-60 seconds because of the
+free-tier pacing. **Don't press Send twice** — the backend retries on its own, and a second press creates a duplicate.
+
+**Reset to the original 20 messages** (deletes only messages sent from the Live demo page):
 
 ```
-NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaws.com
+$ADMIN = gcloud secrets versions access latest --secret=admin-token
+Invoke-RestMethod -Method Post -Uri "$API/admin/reset-demo" -Headers @{ "X-Admin-Token" = $ADMIN }
+```
+
+Expected: `deleted: 3  remaining: 20`. Then refresh the dashboard page (it has no caching).
+
+---
+
+## Part 7 — Updating after code changes
+
+Re-run only the deploy command for what changed (from the `backend` folder, after the Part 2.0 block):
+
+| What changed | Command | Then |
+|---|---|---|
+| `src/processor/` (e.g. Person B's prompt) | Part 3.1 deploy command | Re-upload the files (Part 4) so they're re-scored |
+| `src/api/` | Part 3.2 deploy command | Nothing |
+| `../frontend` | Part 5 deploy command | Refresh the dashboard |
+| Gemini key | `Set-Content key.txt` as in 2.4, then `gcloud secrets versions add gemini-api-key --data-file=key.txt`, `Remove-Item key.txt` | Re-run the Part 3.1 deploy |
+
+Re-uploading the same files is safe: each file always gets the same ID, so results are overwritten, not duplicated.
+
+---
+
+## Part 8 — API reference for the frontend team
+
+Base URL = `$API` (looks like `https://retention-api-xxxxxxxxxx.asia-southeast1.run.app`).
+For local dashboard development, put it in `frontend/.env.local`:
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://retention-api-xxxxxxxxxx.asia-southeast1.run.app
 ```
 
 (No trailing slash. Restart `npm run dev` after editing `.env.local`.)
@@ -348,7 +363,8 @@ NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaw
 | GET | `/students` | The at-risk student table, highest risk first |
 | GET | `/students/{student_id}` | Student detail page with full timeline |
 | GET | `/insights?risk_level=HIGH,CRITICAL&stressor=FINANCIAL&student_id=TP071234&limit=50` | Raw signal feed (all filters optional) |
-| POST | `/ingest` | Body: `{"student_id","student_name","source","text"}` → `202 {"status":"queued"}` |
+| POST | `/ingest` | Body: `{"student_id","student_name","source","text"}` → `202 {"status":"queued","object_key":...}` |
+| POST | `/admin/reset-demo` | Header `X-Admin-Token: <admin-token secret>` → `{"deleted": n, "remaining": n}` |
 
 **Allowed values**
 
@@ -357,13 +373,17 @@ NEXT_PUBLIC_API_BASE_URL=https://YOUR-API-ID.execute-api.ap-southeast-2.amazonaw
   `TECHNOLOGY_ACCESS`, `FAMILY_PERSONAL`, `HEALTH_PHYSICAL`, `HOUSING_TRANSPORT`, `NONE`
 - `urgency`: `ROUTINE`, `FOLLOW_UP_THIS_WEEK`, `CONTACT_WITHIN_24H`, `IMMEDIATE`
 - `trend` (students only): `NEW`, `RISING`, `FALLING`, `STABLE` (latest message compared with the one before it)
+- `source_system`: `LMS_FORUM`, `SUPPORT_TICKET`, `EMAIL`, `CHATBOT`, `OTHER`
 
 **How a student's risk is worked out (`/students`):** `current_risk_*`, `highest_urgency` and
 `recommended_action` come from the student's **most recent** message, so a student who gets help drops
 down the list. Safety rule: if any message was flagged for self-harm, the student stays `CRITICAL` /
 `IMMEDIATE` no matter what they send later. `peak_risk_score` / `peak_risk_level` keep the highest-risk
 message ever, for context.
-- `source_system`: `LMS_FORUM`, `SUPPORT_TICKET`, `EMAIL`, `CHATBOT`, `OTHER`
+
+**Compatibility note:** each insight has `source_uri` (`gs://…`) and the same value as `s3_uri`, and `/ingest`
+returns `object_key` plus the same value as `s3_key`. The duplicates keep the dashboard working unchanged
+from the first version; new code should use `source_uri` and `object_key`.
 
 **Example: `GET /students`**
 
@@ -375,12 +395,12 @@ message ever, for context.
       "student_id": "TP070455",
       "student_name": "Priya Nair",
       "signal_count": 3,
-      "current_risk_score": 92,
+      "current_risk_score": 95,
       "current_risk_level": "CRITICAL",
-      "latest_risk_score": 92,
-      "peak_risk_score": 92,
+      "latest_risk_score": 95,
+      "peak_risk_score": 95,
       "peak_risk_level": "CRITICAL",
-      "average_risk_score": 70.3,
+      "average_risk_score": 71.7,
       "trend": "RISING",
       "top_stressors": ["BURNOUT_MENTAL_HEALTH", "ACADEMIC_PRESSURE"],
       "self_harm_flag": true,
@@ -403,7 +423,7 @@ message ever, for context.
   "student_id": "TP071234",
   "student_name": "Aisyah Rahman",
   "source_system": "EMAIL",
-  "risk_score": 72,
+  "risk_score": 67,
   "risk_level": "HIGH",
   "primary_stressor": "FINANCIAL",
   "secondary_stressors": ["ACADEMIC_PRESSURE"],
@@ -416,49 +436,33 @@ message ever, for context.
   "event_time": "2026-10-13T15:41:00Z",
   "event_date": "2026-10-13",
   "raw_text": "From: \"Aisyah Rahman\" <tp071234@student.uni.example> ...",
-  "s3_uri": "s3://student-retention-datalake-.../incoming/historical/02_email.txt",
-  "processed_at": "2026-11-07T03:12:45Z",
+  "source_uri": "gs://your-project-raw/incoming/historical/02_email.txt",
+  "s3_uri": "gs://your-project-raw/incoming/historical/02_email.txt",
+  "is_live": false,
+  "processed_at": "2026-11-11T09:12:45Z",
   "model": "gemini-3.1-flash-lite"
 }
 ```
 
-**Example: `GET /stats`** (ready for Recharts: each array is already `[{name, count}]`-style)
+**Example: `GET /stats`**
 
 ```json
 {
-  "total_signals": 23,
+  "total_signals": 20,
   "total_students": 10,
-  "students_needing_attention": 5,
-  "self_harm_alerts": 1,
-  "average_risk_score": 46.2,
-  "signals_by_risk_level": [{"level": "LOW", "count": 7}, {"level": "MEDIUM", "count": 6}, {"level": "HIGH", "count": 7}, {"level": "CRITICAL", "count": 3}],
-  "students_by_risk_level": [{"level": "LOW", "count": 3}, {"level": "MEDIUM", "count": 2}, {"level": "HIGH", "count": 3}, {"level": "CRITICAL", "count": 2}],
-  "signals_by_stressor": [{"stressor": "FINANCIAL", "count": 5}, {"stressor": "BURNOUT_MENTAL_HEALTH", "count": 3}],
-  "signals_by_source": [{"source": "EMAIL", "count": 7}, {"source": "LMS_FORUM", "count": 8}],
+  "students_needing_attention": 6,
+  "self_harm_alerts": 0,
+  "average_risk_score": 52.4,
+  "signals_by_risk_level": [{"level": "LOW", "count": 5}, {"level": "MEDIUM", "count": 5}, {"level": "HIGH", "count": 7}, {"level": "CRITICAL", "count": 3}],
+  "students_by_risk_level": [{"level": "LOW", "count": 2}, {"level": "MEDIUM", "count": 2}, {"level": "HIGH", "count": 4}, {"level": "CRITICAL", "count": 2}],
+  "signals_by_stressor": [{"stressor": "FINANCIAL", "count": 5}, {"stressor": "ACADEMIC_PRESSURE", "count": 4}],
+  "signals_by_source": [{"source": "EMAIL", "count": 6}, {"source": "LMS_FORUM", "count": 7}],
   "timeline": [{"date": "2026-10-02", "signals": 1, "avg_risk_score": 45.0, "high_or_critical": 0}],
-  "generated_at": "2026-11-07T03:20:00Z"
+  "generated_at": "2026-11-11T09:20:00Z"
 }
 ```
 
 (Exact numbers depend on what Gemini returns.)
-
-**Copy-paste fetch helper for Next.js** (`lib/api.ts`):
-
-```ts
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!BASE) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set in .env.local");
-  const res = await fetch(`${BASE}${path}`, { cache: "no-store", ...init });
-  if (!res.ok) throw new Error(`API ${path} failed: ${res.status} ${await res.text()}`);
-  return res.json() as Promise<T>;
-}
-
-// usage:
-// const stats = await api<any>("/stats");
-// await api("/ingest", { method: "POST", headers: { "Content-Type": "application/json" },
-//   body: JSON.stringify({ student_id: "TP071234", student_name: "Aisyah Rahman", source: "zendesk", text: "..." }) });
-```
 
 ---
 
@@ -466,50 +470,49 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `'aws'` / `'sam'` is not recognized | Terminal opened before install | Close and reopen the terminal |
-| `Unable to locate credentials` | CLI not configured | Run `aws configure` (Part 0.3) |
-| `Binary validation failed for python` | You ran `sam build` | Not needed. Delete the `.aws-sam` folder and run `sam deploy` |
-| Deploy fails: `iam:CreateRole ... AccessDenied` | Restricted account (e.g. Learner Lab) | Tell the team lead; template needs the `LabRole` variant |
-| Deploy fails: bucket `already exists` | An old stack (or another teammate) in the same account/region already created it | Delete the old stack, or deploy from only one laptop |
-| Deploy fails: `ROLLBACK_COMPLETE`, can't update | First deploy failed | `sam delete --stack-name student-retention` then deploy again |
-| Any command: `explicit deny in a service control policy` | Wrong region for a new-sign-up account (see Part 0.1) | `aws configure set region ap-southeast-2`, delete `samconfig.toml`, and redeploy choosing `ap-southeast-2` |
-| Still denied for SSM in the correct region | Account blocks SSM | Use Part 2 option B (paste key at the `GeminiApiKey` prompt) |
-| Logs: `Could not read the Gemini API key from SSM` | Parameter missing or in another region | `aws ssm get-parameter --name /retention/gemini-api-key --region ap-southeast-2`; redo Part 2 if it errors |
-| Logs: `Gemini HTTP 400 ... API key not valid` | Wrong or stale key | Redo Part 2 with `--overwrite`. New Lambda containers pick it up; to force it, redeploy |
-| Logs: `Gemini HTTP 404` | Model name typo | `sam deploy --parameter-overrides GeminiModel=gemini-3.1-flash-lite` |
-| Logs: `Gemini HTTP 429` | Free-tier rate limit | Messages retry by themselves. Upload fewer files at once or wait a minute |
-| Uploaded files but no logs at all | File not under `incoming/` | Re-upload to `s3://BUCKET/incoming/...` |
-| Some rows missing | Messages failed 3 times → DLQ | `aws sqs get-queue-attributes --queue-url <DeadLetterQueueUrl> --attribute-names ApproximateNumberOfMessages`, then read the processor logs for the error. Re-upload the file after fixing |
-| Browser console: `blocked by CORS policy` | Wrong URL (e.g. double `//`) or `AllowedOrigin` set to another domain | Check `NEXT_PUBLIC_API_BASE_URL` has no trailing slash; keep `AllowedOrigin` as `*` until the frontend is hosted |
-| Frontend shows `undefined` URL | `.env.local` not loaded | Name must start with `NEXT_PUBLIC_`; restart `npm run dev` |
-| PowerShell `curl` behaves strangely | `curl` is an alias in Windows PowerShell | Use `Invoke-RestMethod` (Part 5) or `curl.exe` |
-
-Re-uploading the same file is safe: it overwrites the same row instead of creating a duplicate.
+| `'gcloud' is not recognized` | Terminal opened before install | Close and reopen PowerShell |
+| Commands fail with `$PROJECT` empty or `gs://-raw` | New PowerShell window | Run the Part 2.0 block again |
+| `Billing account ... not found` / `billing must be enabled` | Project not linked to the trial | Part 0.2 step 4 |
+| `database already exists` (2.2) or `already exists` (2.3, 2.4, 2.5) | You ran it before | Fine, carry on |
+| Bucket create: `name is not available` | Bucket names are global | Use `$RAW = "$PROJECT-raw2"` (and the same for `$CURATED`) everywhere |
+| `Service account ... does not exist` (2.5) | Account still being created | Wait 30 seconds, run the line again |
+| Processor deploy: permission error about **Eventarc**/**service agent** | First trigger in a new project | Wait 2 minutes, run the same deploy again |
+| Deploy: `Build failed ... missing permission on the build service account` | Cloud Build permission | Run the last command in 2.5, wait 2 minutes, deploy again |
+| Logs: `GEMINI_API_KEY is not set` | Deployed without `--set-secrets` | Re-run the Part 3.1 command exactly |
+| Logs: `Permission 'secretmanager.versions.access' denied` | Role missing | Re-run the `foreach` line in 2.5 |
+| Logs: `Gemini HTTP 400 ... API key not valid` | Wrong key in the secret | Part 7 "Gemini key" row |
+| Logs: `Gemini HTTP 429 ... retrying in 60s` | Free-tier limit | Normal; it waits and retries by itself |
+| Logs: `Gemini daily free-tier quota used up` | Requests-per-day limit | Google Cloud keeps retrying; it resets at 4pm Malaysia time |
+| Uploaded files but no processor logs | Wrong bucket/folder, or trigger not ready | Files must be in `gs://$RAW/incoming/...`; check `gcloud eventarc triggers list --location=$REGION`; re-upload |
+| `/admin/reset-demo` returns 403 | Wrong or empty token | Re-run the `$ADMIN = gcloud secrets versions access ...` line |
+| Dashboard build fails on Cloud Run | Code doesn't build | Run `npm run build` locally (Part 5 step 1) and fix the first error it shows |
+| Dashboard loads but shows `API ... failed` | Built with the wrong/empty API URL | Check `$API` prints a URL, then re-run the Part 5 deploy |
+| Browser console: `blocked by CORS policy` | `ALLOWED_ORIGIN` set to another site | Keep `ALLOWED_ORIGIN=*`, or set it to the exact dashboard URL |
 
 ---
 
 ## Costs
 
-For this demo the AWS side costs cents: Lambda, SQS and DynamoDB on-demand are pay-per-use and covered by
-the free tier at this volume. The Gemini free tier has per-minute and per-day limits, which is why the queue
-only runs 2 Gemini calls at a time.
+The free trial's credit covers this many times over. Cloud Run functions, Firestore, Cloud Storage and
+Secret Manager all have monthly free allowances far above a hackathon demo; everything scales to zero
+when nobody is using it. Gemini is billed separately by Google AI Studio (free tier).
 
 ## Clean up after the hackathon
 
-```
-aws s3 rm s3://BUCKET --recursive
-sam delete --stack-name student-retention
-aws ssm delete-parameter --name "/retention/gemini-api-key" --region ap-southeast-2
-```
+Deleting the project removes everything in it (buckets, database, functions, dashboard):
 
-Then in the console: **IAM → Users → hackathon-cli → Security credentials → Deactivate/Delete** the access key.
+```
+gcloud projects delete $PROJECT
+```
 
 ---
 
 ## Talking points for the pitch
 
-- **Event-driven data lake:** raw data is immutable in `incoming/`, structured output lands in `curated/` and DynamoDB. New sources (IoT check-in sensors, Wi-Fi logins) can be added by dropping files in the same place.
-- **Resilient by design:** SQS buffering, automatic retries, dead-letter queue, idempotent writes.
-- **Responsible AI:** Gemini is forced into a strict JSON schema; the code then validates every field. Any self-harm signal is always escalated to `CRITICAL / IMMEDIATE`, regardless of what the model scored. Evidence phrases are quoted from the source so counselors can verify the AI's reasoning. The model is told to treat messages as data, which protects against prompt injection.
-- **Security:** no keys in code (SSM SecureString), private encrypted S3 bucket, least-privilege IAM roles generated per function.
-- **Privacy:** all demo data is fictional. A real deployment would need student consent and compliance with Malaysia's PDPA, plus a paid Gemini tier (free-tier prompts may be used by Google to improve its products), API authentication (e.g. Amazon Cognito), and role-based access for counselors.
+- **Event-driven data lake on Google Cloud:** raw data is immutable in the raw bucket; structured output lands in the curated bucket and Firestore. New sources (IoT check-in sensors, campus Wi-Fi logins) plug in by dropping files into `incoming/`.
+- **Resilient by design:** Eventarc retries failed events automatically for up to 24 hours; writes are idempotent (the same file always maps to the same record), so retries and duplicate events never create duplicates.
+- **Respects AI rate limits:** at most 2 processor instances and paced calls keep the free-tier Gemini quota safe.
+- **Responsible AI:** Gemini is forced into a strict JSON schema, then every field is validated. Any self-harm signal is always escalated to `CRITICAL / IMMEDIATE`, and a flagged student never drops down the list automatically. Evidence phrases are quoted from the source so counsellors can verify the AI. The prompt treats messages as data, which guards against prompt injection. Person B's accuracy test (`eval/`) measures all of this.
+- **Security:** keys live in Secret Manager; buckets are private with public access prevention; functions run as a least-privilege service account; the demo reset is token-protected.
+- **Serverless and cheap:** no servers to manage, scales to zero.
+- **Next steps:** call Gemini through Vertex AI (no API key at all, uses the service account), load the curated bucket into BigQuery for trend analysis, add sign-in for counsellors (Identity Platform), and get student consent and PDPA compliance for real data.

@@ -1,21 +1,22 @@
-# SAM build output
-.aws-sam/
-
-# May contain your Gemini key in plain text if you used the GeminiApiKey deploy parameter
-# (the SSM-blocked-account workaround) instead of SSM Parameter Store. Never commit this.
-samconfig.toml
-
 # Python
 __pycache__/
 *.pyc
 .venv/
 venv/
 
-# Secrets - never commit API keys or AWS credentials
+# Secrets - never commit API keys, tokens or cloud credentials.
+# key.txt / admin.txt are the temporary files from README Part 2.4 (delete them after use).
 .env
 .env.*
+key.txt
+admin.txt
 *.pem
+*.json.key
 credentials
+
+# Old AWS deploy settings (from the first version of this project)
+.aws-sam/
+samconfig.toml
 
 # OS / editor
 .DS_Store

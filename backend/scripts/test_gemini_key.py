@@ -2,7 +2,7 @@
 Check your Gemini API key BEFORE deploying, and preview what the AI returns.
 
 It runs the exact same Gemini call the cloud processor uses, on one of the mock files,
-and prints the structured result. No AWS account or boto3 needed.
+and prints the structured result. No Google Cloud project or extra libraries needed.
 
 Usage (from the backend folder):
 
@@ -22,7 +22,6 @@ Usage (from the backend folder):
 import json
 import os
 import sys
-import types
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -30,15 +29,8 @@ DEFAULT_FILE = BACKEND_DIR / "mock_data" / "samples" / "historical" / "02_email.
 
 
 def load_processor():
-    # The processor imports boto3 (AWS SDK). It's not needed for this test, so if it
-    # isn't installed we put in a harmless stand-in.
-    try:
-        import boto3  # noqa: F401
-    except ImportError:
-        stub = types.ModuleType("boto3")
-        stub.client = lambda *args, **kwargs: None
-        stub.resource = lambda *args, **kwargs: None
-        sys.modules["boto3"] = stub
+    # The processor only loads the Google Cloud libraries when it saves data, so importing it
+    # here needs nothing beyond plain Python.
     sys.path.insert(0, str(BACKEND_DIR / "src" / "processor"))
     import app  # noqa: E402
 
@@ -67,7 +59,7 @@ def main():
         clean = processor.normalise_analysis(raw)
         print(json.dumps(clean, indent=2, ensure_ascii=False))
 
-    print("\nSuccess! Your key works. Next: store it in AWS with the 'aws ssm put-parameter' command in the README.")
+    print("\nSuccess! Your key works. Next: store it in Secret Manager (README, Part 2).")
 
 
 if __name__ == "__main__":

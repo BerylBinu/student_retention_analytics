@@ -1,8 +1,9 @@
 """
-Offline tests: no AWS account, no Gemini key, no internet needed.
+Offline tests: no Google Cloud project, no Gemini key, no internet needed.
 
-AWS and Gemini are replaced with small fakes so we can check the pipeline logic:
-S3 event handling, message splitting, safety rules, DynamoDB saving and the API aggregation.
+Cloud Storage, Firestore and Gemini are replaced with small fakes so we can check the pipeline
+logic: storage event handling, message splitting, safety rules, retry decisions, saving, the API
+aggregation, the demo reset, and the HTTP/CORS layer.
 
 Run from the backend folder:
     python -m unittest discover -s tests -v
@@ -13,62 +14,86 @@ import json
 import sys
 import types
 import unittest
-from decimal import Decimal
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 # ---------------------------------------------------------------------------
-# Fakes for boto3
+# Fakes for Cloud Storage and Firestore
 # ---------------------------------------------------------------------------
-class FakeTable:
-    def __init__(self):
-        self.items = {}
+class FakeBlob:
+    def __init__(self, store, bucket, name):
+        self.store, self.bucket, self.name = store, bucket, name
 
-    def put_item(self, Item):
-        for value in Item.values():
-            assert not isinstance(value, float), "floats must be converted to Decimal"
-        self.items[Item["record_id"]] = Item
+    def download_as_bytes(self):
+        return self.store.objects[(self.bucket, self.name)]
 
-    def scan(self, **kwargs):
-        return {"Items": list(self.items.values())}
+    def upload_from_string(self, data, content_type=None):
+        self.store.objects[(self.bucket, self.name)] = data.encode() if isinstance(data, str) else data
 
 
-class FakeDynamo:
-    def __init__(self):
-        self.table = FakeTable()
+class FakeBucket:
+    def __init__(self, store, name):
+        self.store, self.name = store, name
 
-    def Table(self, name):
-        return self.table
-
-
-class FakeBody:
-    def __init__(self, data):
-        self.data = data
-
-    def read(self):
-        return self.data
+    def blob(self, name):
+        return FakeBlob(self.store, self.name, name)
 
 
-class FakeS3:
+class FakeStorage:
     def __init__(self):
         self.objects = {}
 
-    def get_object(self, Bucket, Key):
-        return {"Body": FakeBody(self.objects[(Bucket, Key)])}
-
-    def put_object(self, Bucket, Key, Body, ContentType=None):
-        self.objects[(Bucket, Key)] = Body if isinstance(Body, bytes) else Body.encode()
+    def bucket(self, name):
+        return FakeBucket(self, name)
 
 
-FAKE_S3 = FakeS3()
-FAKE_DYNAMO = FakeDynamo()
+class FakeSnapshot:
+    def __init__(self, doc_id, data):
+        self.id, self._data = doc_id, data
 
-boto3_stub = types.ModuleType("boto3")
-boto3_stub.client = lambda service, *a, **k: FAKE_S3 if service == "s3" else None
-boto3_stub.resource = lambda service, *a, **k: FAKE_DYNAMO
-sys.modules["boto3"] = boto3_stub
+    def to_dict(self):
+        return dict(self._data)
+
+
+class FakeDocRef:
+    def __init__(self, docs, doc_id):
+        self.docs, self.doc_id = docs, doc_id
+
+    def set(self, data):
+        json.dumps(data)  # Firestore only stores plain JSON-like values
+        self.docs[self.doc_id] = dict(data)
+
+    def delete(self):
+        self.docs.pop(self.doc_id, None)
+
+
+class FakeCollection:
+    def __init__(self):
+        self.docs = {}
+
+    def document(self, doc_id):
+        return FakeDocRef(self.docs, doc_id)
+
+    def stream(self):
+        return [FakeSnapshot(k, v) for k, v in list(self.docs.items())]
+
+
+class FakeFirestore:
+    def __init__(self):
+        self.collections = {}
+
+    def collection(self, name):
+        return self.collections.setdefault(name, FakeCollection())
+
+
+FAKE_STORAGE = FakeStorage()
+FAKE_DB = FakeFirestore()
+
+
+def docs():
+    return FAKE_DB.collection("insights").docs
 
 
 def load(name, relative_path):
@@ -80,8 +105,15 @@ def load(name, relative_path):
 
 processor = load("processor_app", "src/processor/app.py")
 processor.MIN_SECONDS_PER_CALL = 0  # no rate-limit pacing in tests
+processor.CURATED_BUCKET = "curated-bucket"
+processor._storage_client = FAKE_STORAGE
+processor._firestore_client = FAKE_DB
+REAL_CALL_GEMINI = processor.call_gemini
+
 api = load("api_app", "src/api/app.py")
-api.DATA_BUCKET = "test-bucket"
+api.RAW_BUCKET = "raw-bucket"
+api._storage_client = FAKE_STORAGE
+api._firestore_client = FAKE_DB
 
 
 def fake_gemini_answer(student_id, score, stressor, self_harm=False, timestamp="2026-10-13T15:41:00Z"):
@@ -103,16 +135,15 @@ def fake_gemini_answer(student_id, score, stressor, self_harm=False, timestamp="
     }
 
 
-def s3_event_message(bucket, key, size=100):
-    body = {"Records": [{"eventTime": "2026-10-13T16:00:00.000Z",
-                         "s3": {"bucket": {"name": bucket}, "object": {"key": key, "size": size}}}]}
-    return {"messageId": f"msg-{key}", "body": json.dumps(body)}
+def storage_event(name, size=100, bucket="raw-bucket"):
+    return {"bucket": bucket, "name": name, "size": str(size), "timeCreated": "2026-10-13T16:00:00.000Z"}
 
 
 class ProcessorTests(unittest.TestCase):
     def setUp(self):
-        FAKE_DYNAMO.table.items.clear()
-        FAKE_S3.objects.clear()
+        docs().clear()
+        FAKE_STORAGE.objects.clear()
+        processor.call_gemini = REAL_CALL_GEMINI
 
     def test_split_formats(self):
         self.assertEqual(processor.split_into_messages("From: x\n\nhello"), ["From: x\n\nhello"])
@@ -161,40 +192,74 @@ class ProcessorTests(unittest.TestCase):
             processor.parse_gemini_response({"promptFeedback": {"blockReason": "SAFETY"}})
 
     def test_full_pipeline_with_fake_gemini(self):
-        FAKE_S3.objects[("test-bucket", "incoming/my file.txt")] = b"From: a\n\nI cannot pay my fees"
+        FAKE_STORAGE.objects[("raw-bucket", "incoming/my file.txt")] = b"From: a\n\nI cannot pay my fees"
         processor.call_gemini = lambda text: fake_gemini_answer("TP071234", 65, "FINANCIAL")
 
-        event = {"Records": [
-            s3_event_message("test-bucket", "incoming/my+file.txt"),        # URL-encoded key
-            s3_event_message("test-bucket", "incoming/", size=0),           # folder placeholder
-            {"messageId": "test", "body": json.dumps({"Event": "s3:TestEvent"})},
-        ]}
-        result = processor.lambda_handler(event, None)
-        self.assertEqual(result, {"batchItemFailures": []})
-        self.assertEqual(len(FAKE_DYNAMO.table.items), 1)
-        item = next(iter(FAKE_DYNAMO.table.items.values()))
+        self.assertEqual(processor.handle_storage_event(storage_event("incoming/my file.txt")), "processed")
+        self.assertEqual(len(docs()), 1)
+        item = next(iter(docs().values()))
         self.assertEqual(item["risk_level"], "HIGH")
         self.assertEqual(item["event_date"], "2026-10-13")
-        self.assertTrue(any(k.startswith("curated/2026-10-13/") for (_, k) in FAKE_S3.objects))
+        self.assertEqual(item["source_uri"], "gs://raw-bucket/incoming/my file.txt")
+        self.assertEqual(item["s3_uri"], item["source_uri"])  # dashboard compatibility
+        self.assertFalse(item["is_live"])
+        self.assertTrue(any(b == "curated-bucket" and k.startswith("curated/2026-10-13/") for (b, k) in FAKE_STORAGE.objects))
 
-        # Re-processing the same file must not create a duplicate row
-        processor.lambda_handler({"Records": [s3_event_message("test-bucket", "incoming/my+file.txt")]}, None)
-        self.assertEqual(len(FAKE_DYNAMO.table.items), 1)
+        # Re-processing the same file (Google Cloud may deliver an event twice) must not duplicate it
+        processor.handle_storage_event(storage_event("incoming/my file.txt"))
+        self.assertEqual(len(docs()), 1)
 
-    def test_failure_is_reported_for_retry(self):
-        FAKE_S3.objects[("test-bucket", "incoming/x.json")] = b'{"a": 1}'
+    def test_skips_files_outside_incoming_and_placeholders(self):
+        processor.call_gemini = lambda text: self.fail("Gemini must not be called")
+        self.assertEqual(processor.handle_storage_event(storage_event("curated/x.json")), "skipped")
+        self.assertEqual(processor.handle_storage_event(storage_event("incoming/", size=0)), "skipped")
+        self.assertEqual(processor.handle_storage_event(storage_event("incoming/big.json", size=5_000_000)), "skipped")
 
-        def broken(text):
-            raise RuntimeError("Gemini HTTP 429")
+    def test_live_messages_are_marked(self):
+        FAKE_STORAGE.objects[("raw-bucket", "incoming/live/a.json")] = b'{"message": "help"}'
+        processor.call_gemini = lambda text: fake_gemini_answer("TP1", 20, "NONE")
+        processor.handle_storage_event(storage_event("incoming/live/a.json"))
+        self.assertTrue(next(iter(docs().values()))["is_live"])
 
-        processor.call_gemini = broken
-        result = processor.lambda_handler({"Records": [s3_event_message("test-bucket", "incoming/x.json")]}, None)
-        self.assertEqual(result["batchItemFailures"], [{"itemIdentifier": "msg-incoming/x.json"}])
+    def test_transient_failure_is_raised_for_retry(self):
+        FAKE_STORAGE.objects[("raw-bucket", "incoming/x.json")] = b'{"a": 1}'
+
+        def busy(text):
+            raise processor.TransientError("Gemini HTTP 503")
+
+        processor.call_gemini = busy
+        with self.assertRaises(processor.TransientError):
+            processor.handle_storage_event(storage_event("incoming/x.json"))
+
+    def test_google_service_errors_are_retried(self):
+        class ServiceUnavailable(Exception):
+            pass
+
+        FAKE_STORAGE.objects[("raw-bucket", "incoming/x.json")] = b'{"a": 1}'
+
+        def db_down(text):
+            raise ServiceUnavailable("firestore busy")
+
+        processor.call_gemini = db_down
+        with self.assertRaises(processor.TransientError):
+            processor.handle_storage_event(storage_event("incoming/x.json"))
+
+    def test_permanent_failure_is_not_retried(self):
+        FAKE_STORAGE.objects[("raw-bucket", "incoming/x.json")] = b'{"a": 1}'
+
+        def bad_key(text):
+            raise RuntimeError("Gemini HTTP 400: API key not valid")
+
+        processor.call_gemini = bad_key
+        self.assertEqual(processor.handle_storage_event(storage_event("incoming/x.json")), "failed")
+        self.assertEqual(len(docs()), 0)
 
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
-        FAKE_DYNAMO.table.items.clear()
+        docs().clear()
+        FAKE_STORAGE.objects.clear()
+        api.os.environ["ADMIN_TOKEN"] = "secret-token"
         rows = [
             ("r1", "TP071234", "Aisyah", 35, "MEDIUM", "FINANCIAL", "2026-10-02T02:15:00Z", False),
             ("r2", "TP071234", "Aisyah", 70, "HIGH", "FINANCIAL", "2026-10-13T15:41:00Z", False),
@@ -202,20 +267,29 @@ class ApiTests(unittest.TestCase):
             ("r4", "TP071877", "Arjun", 5, "LOW", "NONE", "2026-10-08T01:00:00Z", False),
         ]
         for rid, sid, name, score, level, stressor, ts, harm in rows:
-            FAKE_DYNAMO.table.items[rid] = {
-                "record_id": rid, "student_id": sid, "student_name": name, "risk_score": Decimal(score),
+            docs()[rid] = {
+                "record_id": rid, "student_id": sid, "student_name": name, "risk_score": score,
                 "risk_level": level, "primary_stressor": stressor, "secondary_stressors": [],
                 "event_time": ts, "event_date": ts[:10], "self_harm_indicator": harm,
                 "urgency": "IMMEDIATE" if harm else "ROUTINE", "source_system": "EMAIL",
                 "recommended_action": "Reach out", "summary": "s",
+                "source_uri": f"gs://raw-bucket/incoming/historical/{rid}.json", "is_live": False,
             }
 
-    def call(self, route, **extra):
-        response = api.lambda_handler({"routeKey": route, **extra}, None)
-        return response["statusCode"], json.loads(response["body"])
+    def call(self, method, path, params=None, body="", headers=None):
+        return api.handle_request(method, path, params or {}, body, headers or {})
+
+    def add_row(self, rid, sid, score, level, ts, harm=False, live=False):
+        docs()[rid] = {
+            "record_id": rid, "student_id": sid, "student_name": sid, "risk_score": score,
+            "risk_level": level, "primary_stressor": "NONE", "secondary_stressors": [], "event_time": ts,
+            "event_date": ts[:10], "self_harm_indicator": harm, "urgency": "IMMEDIATE" if harm else "ROUTINE",
+            "source_system": "EMAIL", "recommended_action": f"action-{rid}", "summary": "s",
+            "source_uri": f"gs://raw-bucket/incoming/{'live' if live else 'historical'}/{rid}.json", "is_live": live,
+        }
 
     def test_students_sorted_and_trend(self):
-        status, body = self.call("GET /students")
+        status, body = self.call("GET", "/students")
         self.assertEqual(status, 200)
         self.assertEqual([s["student_id"] for s in body["items"]], ["TP070455", "TP071234", "TP071877"])
         aisyah = body["items"][1]
@@ -223,18 +297,10 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(aisyah["current_risk_level"], "HIGH")
         self.assertIsInstance(aisyah["current_risk_score"], int)
 
-    def add_row(self, rid, sid, score, level, ts, harm=False):
-        FAKE_DYNAMO.table.items[rid] = {
-            "record_id": rid, "student_id": sid, "student_name": sid, "risk_score": Decimal(score),
-            "risk_level": level, "primary_stressor": "NONE", "secondary_stressors": [], "event_time": ts,
-            "event_date": ts[:10], "self_harm_indicator": harm, "urgency": "IMMEDIATE" if harm else "ROUTINE",
-            "source_system": "EMAIL", "recommended_action": f"action-{rid}", "summary": "s",
-        }
-
     def test_recovery_lowers_current_risk(self):
         self.add_row("c1", "TP072210", 82, "CRITICAL", "2026-10-21T13:30:00Z")
         self.add_row("c2", "TP072210", 2, "LOW", "2026-11-05T10:00:00Z")
-        status, body = self.call("GET /students/{student_id}", pathParameters={"student_id": "TP072210"})
+        status, body = self.call("GET", "/students/TP072210")
         self.assertEqual(body["current_risk_level"], "LOW")
         self.assertEqual(body["current_risk_score"], 2)
         self.assertEqual(body["peak_risk_score"], 82)
@@ -244,7 +310,7 @@ class ApiTests(unittest.TestCase):
     def test_self_harm_never_fades(self):
         self.add_row("p1", "TP070999", 95, "CRITICAL", "2026-11-01T00:00:00Z", harm=True)
         self.add_row("p2", "TP070999", 5, "LOW", "2026-11-02T00:00:00Z")
-        status, body = self.call("GET /students/{student_id}", pathParameters={"student_id": "TP070999"})
+        status, body = self.call("GET", "/students/TP070999")
         self.assertEqual(body["current_risk_level"], "CRITICAL")
         self.assertEqual(body["current_risk_score"], 95)
         self.assertEqual(body["highest_urgency"], "IMMEDIATE")
@@ -252,33 +318,99 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(body["self_harm_flag"])
 
     def test_insights_filter(self):
-        status, body = self.call("GET /insights", queryStringParameters={"risk_level": "high,critical"})
+        status, body = self.call("GET", "/insights", {"risk_level": "high,critical"})
         self.assertEqual(body["count"], 2)
         self.assertEqual(body["items"][0]["record_id"], "r3")  # newest first
 
     def test_stats(self):
-        status, body = self.call("GET /stats")
+        status, body = self.call("GET", "/stats")
         self.assertEqual(body["total_students"], 3)
         self.assertEqual(body["students_needing_attention"], 2)
         self.assertEqual(body["self_harm_alerts"], 1)
         self.assertEqual([x["level"] for x in body["signals_by_risk_level"]], ["LOW", "MEDIUM", "HIGH", "CRITICAL"])
         self.assertNotIn("NONE", [x["stressor"] for x in body["signals_by_stressor"]])
 
-    def test_student_detail_and_404(self):
-        status, body = self.call("GET /students/{student_id}", pathParameters={"student_id": "tp071234"})
+    def test_student_detail_404_and_paths(self):
+        status, body = self.call("GET", "/students/tp071234")
         self.assertEqual(status, 200)
         self.assertEqual(len(body["timeline"]), 2)
-        status, _ = self.call("GET /students/{student_id}", pathParameters={"student_id": "TP000000"})
-        self.assertEqual(status, 404)
+        self.assertEqual(self.call("GET", "/students/TP000000")[0], 404)
+        self.assertEqual(self.call("GET", "/students/")[0], 200)  # trailing slash = list
+        self.assertEqual(self.call("GET", "/nope")[0], 404)
+        self.assertEqual(self.call("DELETE", "/students")[0], 404)
 
     def test_ingest(self):
-        status, body = self.call("POST /ingest", body=json.dumps({"student_id": "TP1", "text": "help"}))
+        status, body = self.call("POST", "/ingest", body=json.dumps({"student_id": "TP1", "text": "help"}))
         self.assertEqual(status, 202)
-        self.assertTrue(body["s3_key"].startswith("incoming/live/"))
-        status, _ = self.call("POST /ingest", body=json.dumps({"text": ""}))
-        self.assertEqual(status, 400)
-        status, _ = self.call("POST /ingest", body="not json")
-        self.assertEqual(status, 400)
+        self.assertTrue(body["object_key"].startswith("incoming/live/"))
+        self.assertEqual(body["s3_key"], body["object_key"])  # dashboard compatibility
+        self.assertIn(("raw-bucket", body["object_key"]), FAKE_STORAGE.objects)
+        self.assertEqual(self.call("POST", "/ingest", body=json.dumps({"text": ""}))[0], 400)
+        self.assertEqual(self.call("POST", "/ingest", body="not json")[0], 400)
+
+    def test_reset_demo_needs_token_and_keeps_original_data(self):
+        self.add_row("live1", "TP071234", 85, "CRITICAL", "2026-11-09T10:00:00Z", live=True)
+        self.assertEqual(self.call("POST", "/admin/reset-demo")[0], 403)
+        self.assertEqual(self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": "wrong"})[0], 403)
+        status, body = self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": "secret-token"})
+        self.assertEqual(status, 200)
+        self.assertEqual(body, {"deleted": 1, "remaining": 4})
+        self.assertNotIn("live1", docs())
+
+    def test_reset_demo_disabled_without_configured_token(self):
+        api.os.environ.pop("ADMIN_TOKEN", None)
+        self.assertEqual(self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": ""})[0], 403)
+
+
+class EntryPointTests(unittest.TestCase):
+    """main.py files: the thin layer Google Cloud calls. functions_framework is replaced by a stand-in."""
+
+    @classmethod
+    def setUpClass(cls):
+        ff = types.ModuleType("functions_framework")
+        ff.http = lambda fn: fn
+        ff.cloud_event = lambda fn: fn
+        sys.modules["functions_framework"] = ff
+        sys.modules["app"] = api
+        cls.api_main = load("api_main", "src/api/main.py")
+        sys.modules["app"] = processor
+        cls.processor_main = load("processor_main", "src/processor/main.py")
+        del sys.modules["app"]
+
+    def setUp(self):
+        docs().clear()
+
+    class Request:
+        def __init__(self, method, path, args=None, body=""):
+            self.method, self.path, self.body = method, path, body
+            self.args = types.SimpleNamespace(to_dict=lambda: dict(args or {}))
+            self.headers = {"Content-Type": "application/json"}
+
+        def get_data(self, as_text=False):
+            return self.body
+
+    def test_cors_preflight(self):
+        body, status, headers = self.api_main.handle_http(self.Request("OPTIONS", "/ingest"))
+        self.assertEqual(status, 204)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
+        self.assertIn("POST", headers["Access-Control-Allow-Methods"])
+
+    def test_health_has_cors_and_json(self):
+        body, status, headers = self.api_main.handle_http(self.Request("GET", "/health"))
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["status"], "ok")
+        self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(headers["Content-Type"], "application/json")
+
+    def test_processor_entry_point(self):
+        calls = []
+        original = self.processor_main.handle_storage_event
+        self.processor_main.handle_storage_event = calls.append
+        try:
+            self.processor_main.handle_upload(types.SimpleNamespace(data={"name": "incoming/a.json"}))
+        finally:
+            self.processor_main.handle_storage_event = original
+        self.assertEqual(calls, [{"name": "incoming/a.json"}])
 
 
 if __name__ == "__main__":
