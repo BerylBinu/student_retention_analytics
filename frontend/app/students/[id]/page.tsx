@@ -56,8 +56,8 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
         <Card title="Recommended next step" className="lg:col-span-2">
           <p className="text-base text-slate-900">{s.recommended_action || "-"}</p>
           <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-            <Info term="Urgency" value={label(s.highest_urgency)} />
-            <Info term="Latest score" value={String(s.latest_risk_score)} />
+            <Info term="Current urgency" value={label(s.highest_urgency)} />
+            <Info term="Peak score" value={String(s.peak_risk_score ?? s.latest_risk_score)} />
             <Info term="Average score" value={String(s.average_risk_score)} />
           </dl>
           <div className="mt-5 border-t border-slate-100 pt-4">
