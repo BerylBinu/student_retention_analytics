@@ -94,6 +94,6 @@ Gemini API · Python · Next.js · TypeScript · Tailwind CSS
 
 ## Team
 
-- **Person A — Cloud and pipeline:** Google Cloud architecture, data pipeline, API, deployment
-- **Person B — AI, data and pitch:** mock data, Gemini prompt, risk scoring, accuracy testing, pitch deck
-- **Person C — Frontend and demo:** dashboard, charts, demo flow, demo video
+- **Beryl Abraham Binu — Cloud and pipeline:** Google Cloud architecture, data pipeline, API, deployment
+- **Krishnakaanth Shubin — AI, data and pitch:** mock data, Gemini prompt, risk scoring, accuracy testing, pitch deck
+- **Hisham Moideen — Frontend and demo:** dashboard, charts, demo flow, demo video
