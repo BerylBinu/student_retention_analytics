@@ -88,7 +88,7 @@ npm run start
 ## Deploy it to Google Cloud Run
 
 The public dashboard runs on Cloud Run, Google's service for hosting web apps. The steps (including how
-the API address is passed in at build time) are in [`../backend/README.md`](../backend/README.md),
+the API address is passed in at build time) are in [`../docs/deployment.md`](../docs/deployment.md),
 Part 5. `.gcloudignore` keeps `node_modules`, `.next` and `.env*` files out of the upload.
 
 ## Folder map
