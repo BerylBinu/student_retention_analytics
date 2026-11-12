@@ -27,6 +27,16 @@ Three ready-made messages (Aisyah, Chen Wei and Priya) match the files in `backe
 
 When the AI flags a possible self-harm risk, the dashboard shows a calm, clearly visible banner with the recommended action ("prioritise wellbeing contact"). It deliberately avoids flashing or alarming wording. The flag appears on the Overview, in the student list and on the student's page.
 
+### Reaching out to a student
+
+Each student page has an **Email** button under "Recommended next step". It opens a ready-written draft in the
+counsellor's own email app (or in Gmail with **Open in Gmail**), tailored to the student's main stressor. The
+counsellor reviews and edits it, then sends it themselves: the AI never contacts a student on its own, and the
+email never mentions risk scores, the AI or the analysed messages. Addresses use the demo domain
+`student.example.edu` (set in `components/EmailStudent.tsx`) so a demo click can't reach a real student; a real
+deployment would take the address from the university's student directory. For a possible self-harm risk, the
+button area reminds the counsellor to call or meet the student first and use email only as a follow-up.
+
 ## Run it on your computer
 
 You need [Node.js](https://nodejs.org) (LTS version).

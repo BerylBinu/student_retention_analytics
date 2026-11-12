@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { api, label, formatDate, formatDateTime, riskStyle, TREND_ICON, type StudentDetail } from "@/lib/api";
 import { Avatar, riskHex, Card, Chip, ErrorBox, RiskBadge, SafetyBanner, StressorChip } from "@/components/ui";
+import { EmailStudent } from "@/components/EmailStudent";
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,6 +56,12 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Recommended next step" className="lg:col-span-2">
           <p className="text-base text-slate-900">{s.recommended_action || "-"}</p>
+          <EmailStudent
+            studentId={s.student_id}
+            studentName={s.student_name}
+            stressors={s.top_stressors}
+            selfHarm={s.self_harm_flag}
+          />
           <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <Info term="Current urgency" value={label(s.highest_urgency)} />
             <Info term="Peak score" value={String(s.peak_risk_score ?? s.latest_risk_score)} />
