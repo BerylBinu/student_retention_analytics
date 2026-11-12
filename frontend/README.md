@@ -10,7 +10,7 @@ A Next.js dashboard that shows the results of the Student Retention Analytics En
 
 | Page | Address | What it shows | API used |
 |---|---|---|---|
-| Overview | `/` | Headline numbers, priority students, risk-level donut chart, top stressors, message sources, daily risk trend | `GET /stats`, `GET /students` |
+| Overview | `/` | AI briefing, headline numbers, priority students, risk-level donut chart, top stressors, message sources, daily risk trend | `GET /stats`, `GET /students`, `GET /briefing` |
 | Students | `/students` | Every student ranked by risk, with filters by risk level and search by name or ID | `GET /students` |
 | Student detail | `/students/{student_id}` | Risk score and trend, recommended action, risk-over-time chart, and every analysed message with the AI summary, evidence quotes and original text | `GET /students/{student_id}` |
 | Live demo | `/demo` | Send a new message into the pipeline and watch the AI result arrive | `POST /ingest`, then `GET /insights` |
@@ -36,6 +36,14 @@ email never mentions risk scores, the AI or the analysed messages. Addresses use
 `student.example.edu` (set in `components/EmailStudent.tsx`) so a demo click can't reach a real student; a real
 deployment would take the address from the university's student directory. For a possible self-harm risk, the
 button area reminds the counsellor to call or meet the student first and use email only as a follow-up.
+
+### AI briefing
+
+The Overview page opens with a short **AI briefing**: Gemini reads the latest analysed results (risk levels,
+trends, stressors, follow-up status) and writes a headline plus 2-4 points, such as which stressor drives most
+risk and who to contact first. It loads after the rest of the page from `GET /briefing`, so the page never waits
+for it. If Gemini isn't available it shows a plain summary of the numbers instead, and if the API fails it is
+simply hidden.
 
 ### Counsellor follow-up
 

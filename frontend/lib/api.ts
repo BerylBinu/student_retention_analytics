@@ -39,6 +39,13 @@ export interface Student {
   needs_follow_up?: boolean;
 }
 
+export interface Briefing {
+  headline: string;
+  points: string[];
+  source: "ai" | "summary";
+  generated_at: string;
+}
+
 export type CaseStatus = "OPEN" | "CONTACTED" | "RESOLVED";
 
 export interface CaseEvent {

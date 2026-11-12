@@ -52,9 +52,10 @@ class FakeStorage:
 class FakeSnapshot:
     def __init__(self, doc_id, data):
         self.id, self._data = doc_id, data
+        self.exists = data is not None
 
     def to_dict(self):
-        return dict(self._data)
+        return dict(self._data) if self._data is not None else None
 
 
 class FakeDocRef:
@@ -67,6 +68,9 @@ class FakeDocRef:
 
     def delete(self):
         self.docs.pop(self.doc_id, None)
+
+    def get(self):
+        return FakeSnapshot(self.doc_id, self.docs.get(self.doc_id))
 
 
 class FakeCollection:
@@ -259,6 +263,7 @@ class ApiTests(unittest.TestCase):
     def setUp(self):
         docs().clear()
         FAKE_DB.collection(api.CASES_COLLECTION).docs.clear()
+        FAKE_DB.collection(api.BRIEFING_COLLECTION).docs.clear()
         FAKE_STORAGE.objects.clear()
         api.os.environ["ADMIN_TOKEN"] = "secret-token"
         rows = [
@@ -401,6 +406,38 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(detail["case_new_message"])
         self.assertTrue(detail["needs_follow_up"])
         self.assertEqual(detail["case_status"], "RESOLVED")
+
+    def test_briefing_uses_gemini_once_then_cache(self):
+        calls = []
+
+        def fake_gemini(snapshot):
+            calls.append(snapshot)
+            return {"headline": "Two students need attention", "points": ["Priya needs a wellbeing contact today."]}
+
+        original = api.call_gemini_briefing
+        api.call_gemini_briefing = fake_gemini
+        try:
+            first = self.call("GET", "/briefing")[1]
+            second = self.call("GET", "/briefing")[1]
+            self.assertEqual(first["source"], "ai")
+            self.assertEqual(second["headline"], "Two students need attention")
+            self.assertEqual(len(calls), 1)  # second request served from the saved briefing
+            self.assertEqual(calls[0]["students"][0]["name"], "Priya")  # self-harm first
+            self.assertNotIn("text", json.dumps(calls[0]["students"][0]))  # no raw message text sent
+            self.call("POST", "/students/TP070455/case", body=json.dumps({"status": "CONTACTED"}))
+            self.call("GET", "/briefing")
+            self.assertEqual(len(calls), 2)  # data changed -> new briefing
+        finally:
+            api.call_gemini_briefing = original
+
+    def test_briefing_falls_back_without_gemini(self):
+        api.os.environ.pop("GEMINI_API_KEY", None)
+        status, body = self.call("GET", "/briefing")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["source"], "summary")
+        self.assertIn("self-harm", body["points"][0])
+        self.assertEqual(body["headline"], "2 of 3 students need attention.")
+        self.assertEqual(FAKE_DB.collection(api.BRIEFING_COLLECTION).docs, {})  # fallback is never cached
 
     def test_reset_demo_clears_cases(self):
         self.cases().clear()

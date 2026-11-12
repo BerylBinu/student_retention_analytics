@@ -45,7 +45,7 @@ backend/
 │   │   └── requirements.txt   # Google Cloud libraries the function needs
 │   └── api/
 │       ├── main.py            # entry point for web requests (CORS, JSON)
-│       ├── app.py             # routes: /students, /stats, /insights, /ingest, /students/{id}/case, /admin/reset-demo
+│       ├── app.py             # routes: /students, /stats, /insights, /briefing, /ingest, /students/{id}/case, /admin/reset-demo
 │       └── requirements.txt
 ├── mock_data/                 # fictional student messages in 4 messy formats
 ├── eval/                      # Person B's answer key and accuracy test for the Gemini prompt
@@ -243,7 +243,7 @@ new project can fail while permissions finish setting up).
 ### 3.2 The API
 
 ```
-gcloud functions deploy retention-api --gen2 --runtime=python313 --region=$REGION --source=src/api --entry-point=handle_http --trigger-http --allow-unauthenticated --service-account=$SA --max-instances=5 --timeout=60s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,RAW_BUCKET=$RAW,ALLOWED_ORIGIN=*" --set-secrets=ADMIN_TOKEN=admin-token:latest
+gcloud functions deploy retention-api --gen2 --runtime=python313 --region=$REGION --source=src/api --entry-point=handle_http --trigger-http --allow-unauthenticated --service-account=$SA --max-instances=5 --timeout=60s --memory=512Mi --set-env-vars="FIRESTORE_COLLECTION=insights,RAW_BUCKET=$RAW,ALLOWED_ORIGIN=*,GEMINI_MODEL=gemini-3.1-flash-lite" --set-secrets="ADMIN_TOKEN=admin-token:latest,GEMINI_API_KEY=gemini-api-key:latest"
 ```
 
 Get its address and test it:
@@ -340,7 +340,7 @@ Re-run only the deploy command for what changed (from the `backend` folder, afte
 | `src/processor/` (e.g. Person B's prompt) | Part 3.1 deploy command | Re-upload the files (Part 4) so they're re-scored |
 | `src/api/` | Part 3.2 deploy command | Nothing |
 | `../frontend` | Part 5 deploy command | Refresh the dashboard |
-| Gemini key | `Set-Content key.txt` as in 2.4, then `gcloud secrets versions add gemini-api-key --data-file=key.txt`, `Remove-Item key.txt` | Re-run the Part 3.1 deploy |
+| Gemini key | `Set-Content key.txt` as in 2.4, then `gcloud secrets versions add gemini-api-key --data-file=key.txt`, `Remove-Item key.txt` | Re-run the Part 3.1 and 3.2 deploys |
 
 Re-uploading the same files is safe: each file always gets the same ID, so results are overwritten, not duplicated.
 
@@ -361,12 +361,20 @@ NEXT_PUBLIC_API_BASE_URL=https://retention-api-xxxxxxxxxx.asia-southeast1.run.ap
 |---|---|---|
 | GET | `/health` | "Is the backend up?" |
 | GET | `/stats` | KPI cards and charts (risk distribution, stressors, daily trend) |
+| GET | `/briefing` | AI briefing for the Overview: `{"headline", "points": [2-4 strings], "source": "ai"\|"summary", "generated_at"}` |
 | GET | `/students` | The at-risk student table, highest risk first (each row includes the follow-up fields below) |
 | GET | `/students/{student_id}` | Student detail page with full timeline and `case_history` (newest first) |
 | POST | `/students/{student_id}/case` | Counsellor follow-up. Body: `{"status": "OPEN"\|"CONTACTED"\|"RESOLVED", "note": "max 500 chars"}` → the saved case |
 | GET | `/insights?risk_level=HIGH,CRITICAL&stressor=FINANCIAL&student_id=TP071234&limit=50` | Raw signal feed (all filters optional) |
 | POST | `/ingest` | Body: `{"student_id","student_name","source","text"}` → `202 {"status":"queued","object_key":...}` |
 | POST | `/admin/reset-demo` | Header `X-Admin-Token: <admin-token secret>` → `{"deleted": n, "remaining": n, "cases_cleared": n}` |
+
+**AI briefing:** the API sends Gemini a compact snapshot (each student's risk level, trend, stressors, self-harm
+flag, the one-line AI summary and follow-up status; never the raw message text) and gets back a headline and 2-4
+points. The result is saved in Firestore (`briefings/latest`) with a fingerprint of the data, so Gemini is only
+called again after a new message is analysed, a follow-up is saved or the demo is reset. If Gemini is busy, the
+quota is used up or the key is missing, `/briefing` returns a plain summary built from the numbers
+(`"source": "summary"`) instead of failing.
 
 **Follow-up fields** on every student: `case_status` (`OPEN` until a counsellor saves one), `case_note`,
 `case_updated_at`, `case_new_message` (the student wrote again after the last update) and `needs_follow_up`

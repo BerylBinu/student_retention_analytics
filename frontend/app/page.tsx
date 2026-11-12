@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { api, label, riskStyle, formatDate, type Stats, type Student } from "@/lib/api";
+import { AiBriefing } from "@/components/AiBriefing";
 import { Avatar, BarList, Card, Donut, ErrorBox, Icon, RiskBadge, STRESSOR_COLOR, StatCard } from "@/components/ui";
 
 function levelFor(score: number) {
@@ -66,6 +67,8 @@ export default async function OverviewPage() {
           </span>
         </Link>
       )}
+
+      <AiBriefing />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
