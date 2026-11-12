@@ -55,11 +55,11 @@ accuracy test is in [`eval/`](eval).
 
 ## API reference
 
-Base URL = `$API` (looks like `https://retention-api-xxxxxxxxxx.asia-southeast1.run.app`).
+Base URL of the live deployment: `https://retention-api-soaznw43ya-as.a.run.app` (try `https://retention-api-soaznw43ya-as.a.run.app/students` in a browser).
 For local dashboard development, put it in `frontend/.env.local`:
 
 ```
-NEXT_PUBLIC_API_BASE_URL=https://retention-api-xxxxxxxxxx.asia-southeast1.run.app
+NEXT_PUBLIC_API_BASE_URL=https://retention-api-soaznw43ya-as.a.run.app
 ```
 
 (No trailing slash. Restart `npm run dev` after editing `.env.local`.)

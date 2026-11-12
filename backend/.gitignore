@@ -14,10 +14,6 @@ admin.txt
 *.json.key
 credentials
 
-# Old AWS deploy settings (from the first version of this project)
-.aws-sam/
-samconfig.toml
-
 # OS / editor
 .DS_Store
 Thumbs.db

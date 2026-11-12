@@ -34,8 +34,7 @@ counsellor's own email app (or in Gmail with **Open in Gmail**), tailored to the
 counsellor reviews and edits it, then sends it themselves: the AI never contacts a student on its own, and the
 email never mentions risk scores, the AI or the analysed messages. Addresses use the demo domain
 `student.example.edu` (set in `components/EmailStudent.tsx`) so a demo click can't reach a real student; a real
-deployment would take the address from the university's student directory. For a possible self-harm risk, the
-button area reminds the counsellor to call or meet the student first and use email only as a follow-up.
+deployment would take the address from the university's student directory.
 
 ### AI briefing
 
@@ -65,7 +64,7 @@ npm install
 Create a file called `.env.local` in the `frontend` folder with the API address from the backend deployment (the `ApiBaseUrl` stack output, no trailing slash):
 
 ```
-NEXT_PUBLIC_API_BASE_URL=https://retention-api-XXXXXXXXXX.asia-southeast1.run.app
+NEXT_PUBLIC_API_BASE_URL=https://retention-api-soaznw43ya-as.a.run.app
 ```
 
 Then start the app:
@@ -117,7 +116,7 @@ frontend/
 - **Live data, no caching.** Every page fetches fresh data from the API when it opens, so new AI results show up straight away. `cacheComponents` is turned off in `next.config.ts` for this reason.
 - **No chart library.** The charts (donut, bars, risk timeline) are plain SVG and Tailwind, so there are fewer dependencies to install.
 - **Friendly labels.** API values like `BURNOUT_MENTAL_HEALTH` and `FOLLOW_UP_THIS_WEEK` are turned into readable text in `lib/api.ts`. Each risk level and stressor has one colour, used the same way on every page.
-- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's current score comes from their most recent message, so a student who gets help moves down the list. Safety rule (set in the backend): anyone flagged for possible self-harm stays Critical until a counsellor follows up. The detail page also shows the peak score for context.
+- **Risk levels:** Low 0-29, Medium 30-59, High 60-79, Critical 80-100. A student's current score comes from their most recent message, so a student who gets help moves down the list. The detail page also shows the peak score for context.
 
 ## Built with
 
