@@ -16,23 +16,33 @@ evidence-backed **At-Risk Student Dashboard** — built entirely on **Google Clo
 
 ## How it works
 
-```
- Student messages ──► Cloud Storage ──► Eventarc ──► Cloud Run function ──► Gemini
- (tickets, forums,     (raw data lake)   (event,       (processor: prompt,
-  emails, chatbot)                        auto-retry)   validation, safety rules)
-                                                              │
-                                                              ▼
- Counsellor ◄── Next.js dashboard ◄── Cloud Run function ◄── Firestore  (+ curated bucket)
-                (Cloud Run)           (API)
-```
+![Google Cloud architecture](docs/architecture.png)
 
-1. A raw message lands in the Cloud Storage data lake (`incoming/`).
-2. Eventarc triggers the processor, which asks Gemini for a strict JSON analysis: risk score 0-100,
-   main stressor, quoted evidence, recommended action and urgency.
-3. The processor validates every field and applies safety rules (any self-harm signal is always
-   escalated to Critical), then saves the result to Firestore.
-4. The API turns those results into a ranked student list, per-student timelines and chart data.
-5. The dashboard shows who needs help now, why, and what to do next.
+1. Student messages from university systems land in the Cloud Storage data lake (`incoming/`).
+2. Eventarc triggers the processor for every new file, and retries automatically if anything fails.
+3. The processor asks **Gemini** for a strict JSON analysis: risk score 0-100, main stressor, quoted evidence,
+   recommended action and urgency. It validates every field and applies safety rules (any self-harm signal is
+   always Critical).
+4. Results are saved to Firestore, with a clean copy in the curated bucket.
+5. The API ranks students, builds the charts, asks Gemini for a short **AI briefing**, and stores counsellors'
+   follow-ups.
+6. Counsellors see who needs help, why, and what to do next, then record a follow-up or email the student
+   straight from the dashboard.
+
+In production, connectors from the LMS, helpdesk, email and chatbot would drop messages into the data lake
+automatically; the dashboard's **Live demo** page simulates one arriving (`POST /ingest`).
+
+The diagram source is [`docs/architecture.svg`](docs/architecture.svg) (scales without blurring, e.g. for the pitch deck).
+
+## Features
+
+- **AI briefing:** Gemini summarises today's picture in a few sentences: main drivers of risk and who to contact first.
+- **Ranked at-risk list** with risk level, trend, stressors, urgency and a **Needs follow-up** filter.
+- **Student detail:** risk over time, every analysed message with the AI summary and the exact evidence quotes.
+- **Counsellor follow-up:** mark a student Contacted or Resolved with a note; a new message puts them back on the list.
+- **Email the student:** one click opens a kind, editable draft tailored to the student's main stressor.
+- **Multilingual:** handles Malay and Manglish messages (summaries in English, evidence quoted in the original).
+- **Live demo:** send a message and watch the whole Google Cloud pipeline score it in under a minute.
 
 ## Responsible AI
 
@@ -40,7 +50,11 @@ evidence-backed **At-Risk Student Dashboard** — built entirely on **Google Clo
 - Self-harm signals always become Critical / Immediate and never fade on their own.
 - Every alert shows the exact phrases that triggered it, so counsellors can check the AI's reasoning.
 - Messages are treated as data, not instructions (prompt-injection guard).
-- An accuracy test against a hand-written answer key measures the prompt (`backend/eval/`).
+- An accuracy test against a hand-written answer key measures the prompt (`backend/eval/`): 31 cases including
+  Malay and Manglish.
+- The AI never contacts a student: counsellors review and send every email themselves, and their follow-ups never
+  change the AI's risk score.
+- The AI briefing only sees the AI summaries and scores, never the raw student messages.
 - All student data in this repo is fictional.
 
 ## Repository

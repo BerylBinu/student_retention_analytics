@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1010" viewBox="0 0 1600 1010" font-family="Arial, Helvetica, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/></marker>
+<marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9334E6"/></marker>
+<style>
+.t1{font-size:17px;font-weight:700;fill:#202124;text-anchor:middle}
+.t2{font-size:14px;font-weight:700;text-anchor:middle}
+.t3{font-size:12.5px;fill:#5f6368;text-anchor:middle}
+.lbl{font-size:12.5px;fill:#3c4043}
+.badge{font-size:13px;font-weight:700;fill:#fff;text-anchor:middle}
+.leg{font-size:14px;fill:#3c4043}
+</style></defs>
+<rect width="1600" height="1010" fill="#ffffff"/>
+<text x="40" y="58" font-size="28" font-weight="700" fill="#202124">Student Retention Analytics Engine</text>
+<text x="40" y="88" font-size="16" fill="#5f6368">Google Cloud architecture · event-driven, serverless, Gemini-powered</text>
+<rect x="290" y="160" width="1050" height="640" rx="18" fill="#f8fafd" stroke="#1a73e8" stroke-width="2" stroke-dasharray="10 7"/>
+<text x="312" y="192" font-size="15" font-weight="700" fill="#1a73e8">Google Cloud project · asia-southeast1 (Singapore)</text>
+<g><rect x="850" y="30" width="260" height="100" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M862,30 h236 a12,12 0 0 1 12,12 v0 h-260 v0 a12,12 0 0 1 12,-12 z" fill="#9334E6"/>
+<rect x="850" y="30" width="260" height="7" rx="3" fill="#9334E6"/>
+<text x="980.0" y="66" class="t1">Gemini API</text>
+<text x="980.0" y="88" class="t2" fill="#9334E6">gemini-3.1-flash-lite</text>
+<text x="980.0" y="110" class="t3">Message analysis + AI briefing</text>
+</g>
+<g><rect x="330" y="220" width="220" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M342,220 h196 a12,12 0 0 1 12,12 v0 h-220 v0 a12,12 0 0 1 12,-12 z" fill="#4285F4"/>
+<rect x="330" y="220" width="220" height="7" rx="3" fill="#4285F4"/>
+<text x="440.0" y="256" class="t1">Cloud Storage</text>
+<text x="440.0" y="278" class="t2" fill="#4285F4">Raw data lake</text>
+<text x="440.0" y="300" class="t3">incoming/ (JSON, TXT)</text>
+</g>
+<g><rect x="600" y="220" width="200" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M612,220 h176 a12,12 0 0 1 12,12 v0 h-200 v0 a12,12 0 0 1 12,-12 z" fill="#34A853"/>
+<rect x="600" y="220" width="200" height="7" rx="3" fill="#34A853"/>
+<text x="700.0" y="256" class="t1">Eventarc</text>
+<text x="700.0" y="278" class="t2" fill="#34A853">On file created</text>
+<text x="700.0" y="300" class="t3">Auto-retry on failure</text>
+</g>
+<g><rect x="850" y="220" width="260" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M862,220 h236 a12,12 0 0 1 12,12 v0 h-260 v0 a12,12 0 0 1 12,-12 z" fill="#34A853"/>
+<rect x="850" y="220" width="260" height="7" rx="3" fill="#34A853"/>
+<text x="980.0" y="256" class="t1">Cloud Run functions</text>
+<text x="980.0" y="278" class="t2" fill="#34A853">retention-processor</text>
+<text x="980.0" y="300" class="t3">Prompt · schema check</text>
+<text x="980.0" y="317" class="t3">Safety rules (self-harm = Critical)</text>
+</g>
+<g><rect x="1160" y="220" width="160" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M1172,220 h136 a12,12 0 0 1 12,12 v0 h-160 v0 a12,12 0 0 1 12,-12 z" fill="#4285F4"/>
+<rect x="1160" y="220" width="160" height="7" rx="3" fill="#4285F4"/>
+<text x="1240.0" y="256" class="t1">Cloud Storage</text>
+<text x="1240.0" y="278" class="t2" fill="#4285F4">Curated bucket</text>
+<text x="1240.0" y="300" class="t3">Clean JSON results</text>
+</g>
+<g><rect x="330" y="400" width="200" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M342,400 h176 a12,12 0 0 1 12,12 v0 h-200 v0 a12,12 0 0 1 12,-12 z" fill="#5F6368"/>
+<rect x="330" y="400" width="200" height="7" rx="3" fill="#5F6368"/>
+<text x="430.0" y="436" class="t1">Cloud Logging</text>
+<text x="430.0" y="458" class="t2" fill="#5F6368">All functions</text>
+<text x="430.0" y="480" class="t3">Errors, retries, audit</text>
+</g>
+<g><rect x="600" y="400" width="200" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M612,400 h176 a12,12 0 0 1 12,12 v0 h-200 v0 a12,12 0 0 1 12,-12 z" fill="#5F6368"/>
+<rect x="600" y="400" width="200" height="7" rx="3" fill="#5F6368"/>
+<text x="700.0" y="436" class="t1">Secret Manager</text>
+<text x="700.0" y="458" class="t2" fill="#5F6368">Keys &amp; tokens</text>
+<text x="700.0" y="480" class="t3">Gemini key, admin token</text>
+</g>
+<g><rect x="850" y="400" width="260" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M862,400 h236 a12,12 0 0 1 12,12 v0 h-260 v0 a12,12 0 0 1 12,-12 z" fill="#F9AB00"/>
+<rect x="850" y="400" width="260" height="7" rx="3" fill="#F9AB00"/>
+<text x="980.0" y="436" class="t1">Firestore</text>
+<text x="980.0" y="458" class="t2" fill="#B06000">Database</text>
+<text x="980.0" y="480" class="t3">insights · cases · briefings</text>
+</g>
+<g><rect x="330" y="580" width="200" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M342,580 h176 a12,12 0 0 1 12,12 v0 h-200 v0 a12,12 0 0 1 12,-12 z" fill="#34A853"/>
+<rect x="330" y="580" width="200" height="7" rx="3" fill="#34A853"/>
+<text x="430.0" y="616" class="t1">Cloud Run</text>
+<text x="430.0" y="638" class="t2" fill="#34A853">retention-dashboard</text>
+<text x="430.0" y="660" class="t3">Next.js · public URL</text>
+</g>
+<g><rect x="850" y="580" width="260" height="110" rx="12" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+<path d="M862,580 h236 a12,12 0 0 1 12,12 v0 h-260 v0 a12,12 0 0 1 12,-12 z" fill="#34A853"/>
+<rect x="850" y="580" width="260" height="7" rx="3" fill="#34A853"/>
+<text x="980.0" y="616" class="t1">Cloud Run functions</text>
+<text x="980.0" y="638" class="t2" fill="#34A853">retention-api</text>
+<text x="980.0" y="660" class="t3">/students /stats /briefing</text>
+<text x="980.0" y="677" class="t3">/students/{id}/case /ingest</text>
+</g>
+<text x="145" y="190" font-size="14" font-weight="700" fill="#334155" text-anchor="middle">University systems</text>
+<rect x="40" y="205" width="210" height="42" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="145" y="231" font-size="14" fill="#334155" text-anchor="middle">LMS forum posts</text>
+<path d="M250,226 L290,275" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+<rect x="40" y="257" width="210" height="42" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="145" y="283" font-size="14" fill="#334155" text-anchor="middle">Helpdesk tickets</text>
+<path d="M250,278 L290,275" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+<rect x="40" y="309" width="210" height="42" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="145" y="335" font-size="14" fill="#334155" text-anchor="middle">Support emails</text>
+<path d="M250,330 L290,275" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+<rect x="40" y="361" width="210" height="42" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="145" y="387" font-size="14" fill="#334155" text-anchor="middle">Campus chatbot</text>
+<path d="M250,382 L290,275" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+<path d="M290,275 L328,275" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="300" cy="248" r="13" fill="#1a73e8"/><text x="300" y="253" class="badge">1</text>
+<rect x="40" y="585" width="210" height="100" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="145" y="620" font-size="17" font-weight="700" fill="#202124" text-anchor="middle">Counsellor</text>
+<text x="145" y="643" font-size="12.5" fill="#5f6368" text-anchor="middle">Briefing · ranked list · evidence</text>
+<text x="145" y="661" font-size="12.5" fill="#5f6368" text-anchor="middle">Follow-up · email student</text>
+<path d="M550,275 L598,275" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="574" cy="250" r="13" fill="#1a73e8"/><text x="574" y="255" class="badge">2</text>
+<path d="M800,275 L848,275" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1110,275 L1158,275" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M980,220 L980,132" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="1000" cy="145" r="13" fill="#1a73e8"/><text x="1000" y="150" class="badge">3</text>
+<text x="1022" y="150" class="lbl" text-anchor="start">analyse message · strict JSON schema</text>
+<path d="M980,330 L980,398" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="1000" cy="364" r="13" fill="#1a73e8"/><text x="1000" y="369" class="badge">4</text>
+<text x="1022" y="369" class="lbl" text-anchor="start">save result</text>
+<path d="M980,510 L980,578" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="1000" cy="544" r="13" fill="#1a73e8"/><text x="1000" y="549" class="badge">5</text>
+<text x="1022" y="549" class="lbl" text-anchor="start">read &amp; rank</text>
+<path d="M848,620 L532,620" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<circle cx="690" cy="600" r="13" fill="#1a73e8"/><text x="690" y="605" class="badge">6</text>
+<text x="690" y="643" class="lbl" text-anchor="middle">JSON over HTTPS</text>
+<path d="M532,655 L848,655" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<text x="690" y="676" class="lbl" text-anchor="middle">follow-ups, live demo</text>
+<path d="M330,635 L252,635" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M252,660 L328,660" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1110,635 L1375,635 L1375,80 L1112,80" fill="none" stroke="#9334E6" stroke-width="2" marker-end="url(#ahg)"/>
+<text x="1385" y="360" class="lbl" text-anchor="start">write AI</text>
+<text x="1385" y="376" class="lbl" text-anchor="start">briefing</text>
+<path d="M980,690 L980,745 L565,745 L565,350 L480,350 L480,332" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#ah)"/>
+<text x="772" y="765" class="lbl" text-anchor="middle">POST /ingest: live-demo message drops into the data lake</text>
+<path d="M800,440 L830,440 L830,305 L848,305" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="2 5" marker-end="url(#ah)"/>
+<path d="M700,510 L700,560 L870,560 L870,578" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="2 5" marker-end="url(#ah)"/>
+<circle cx="60" cy="850" r="13" fill="#1a73e8"/><text x="60" y="855" class="badge">1</text>
+<text x="84" y="855" class="leg">Messages from university systems land in the raw data lake.</text>
+<circle cx="820" cy="850" r="13" fill="#1a73e8"/><text x="820" y="855" class="badge">2</text>
+<text x="844" y="855" class="leg">Eventarc triggers the processor for each new file and retries on failure.</text>
+<circle cx="60" cy="898" r="13" fill="#1a73e8"/><text x="60" y="903" class="badge">3</text>
+<text x="84" y="903" class="leg">Gemini returns strict JSON: risk 0-100, stressor, evidence, action, urgency.</text>
+<circle cx="820" cy="898" r="13" fill="#1a73e8"/><text x="820" y="903" class="badge">4</text>
+<text x="844" y="903" class="leg">Validated results are saved in Firestore (clean copy in the curated bucket).</text>
+<circle cx="60" cy="946" r="13" fill="#1a73e8"/><text x="60" y="951" class="badge">5</text>
+<text x="84" y="951" class="leg">The API ranks students, builds charts, writes the AI briefing, stores follow-ups.</text>
+<circle cx="820" cy="946" r="13" fill="#1a73e8"/><text x="820" y="951" class="badge">6</text>
+<text x="844" y="951" class="leg">Counsellors act on it: who needs help, why, and what to do next.</text>
+<rect x="1400" y="578" width="16" height="16" rx="4" fill="#4285F4"/><text x="1426" y="591" font-size="13" fill="#3c4043">Storage</text>
+<rect x="1400" y="608" width="16" height="16" rx="4" fill="#34A853"/><text x="1426" y="621" font-size="13" fill="#3c4043">Compute &amp; events</text>
+<rect x="1400" y="638" width="16" height="16" rx="4" fill="#F9AB00"/><text x="1426" y="651" font-size="13" fill="#3c4043">Database</text>
+<rect x="1400" y="668" width="16" height="16" rx="4" fill="#9334E6"/><text x="1426" y="681" font-size="13" fill="#3c4043">AI</text>
+<rect x="1400" y="698" width="16" height="16" rx="4" fill="#5F6368"/><text x="1426" y="711" font-size="13" fill="#3c4043">Security &amp; operations</text>
+<text x="1400" y="560" font-size="13" font-weight="700" fill="#3c4043">Key</text>
+</svg>
