@@ -5,7 +5,7 @@ Runs every file listed in eval/answer_key.json through the SAME Gemini prompt,
 schema and clean-up code the cloud processor uses (src/processor/app.py), then
 compares the AI's answers with our hand-made labels.
 
-No AWS account or boto3 needed - only a Gemini API key.
+No Google Cloud account needed - only a Gemini API key.
 
 Usage (from the backend folder):
 
@@ -22,6 +22,7 @@ Options:
     --only x0        only run cases whose file path contains this text
     --runs 3         run every case several times to check the AI is consistent
     --prompt FILE    test a different copy of the processor (e.g. a proposed new prompt)
+    --show           also print Gemini's summary and quoted evidence for each case
 
 Results are printed and also saved to eval/results/latest.json for the pitch deck.
 """
@@ -31,7 +32,6 @@ import json
 import os
 import sys
 import time
-import types
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -44,14 +44,7 @@ PROCESSOR_FILE = BACKEND_DIR / "src" / "processor" / "app.py"
 
 
 def load_processor():
-    """Import the real processor code. boto3 is replaced by a stand-in if it isn't installed."""
-    try:
-        import boto3  # noqa: F401
-    except ImportError:
-        stub = types.ModuleType("boto3")
-        stub.client = lambda *args, **kwargs: None
-        stub.resource = lambda *args, **kwargs: None
-        sys.modules["boto3"] = stub
+    """Import the real processor code. Its Google Cloud libraries are only loaded when deployed."""
     import importlib.util
 
     path = Path(PROCESSOR_FILE)
@@ -86,6 +79,7 @@ def main():
     parser.add_argument("--only", default="", help="only run cases whose file path contains this text")
     parser.add_argument("--runs", type=int, default=1, help="how many times to run each case (default 1)")
     parser.add_argument("--prompt", default="", help="path to a different processor app.py to test")
+    parser.add_argument("--show", action="store_true", help="print the summary and evidence for each case")
     parser.add_argument("--save-as", default="latest", help="name for the results file (default latest)")
     args = parser.parse_args()
 
@@ -146,6 +140,10 @@ def main():
                 f"{Path(case['file']).name:38} {case['expected_level']:9} {result['risk_level']:9} "
                 f"{result['risk_score']:>5}  {result['primary_stressor']:22} {status}"
             )
+            if args.show:
+                print(f"    summary : {result.get('summary', '')}")
+                print(f"    evidence: {result.get('evidence', [])}")
+                print(f"    action  : {result.get('recommended_action', '')}")
             rows.append({"file": case["file"], "run": run + 1, "note": case["note"],
                          "expected_level": case["expected_level"], "result": result, "checks": checks})
             time.sleep(args.delay)
@@ -180,8 +178,8 @@ def main():
     for exp in LEVELS:
         print(f"{exp:10}" + "".join(f"{table[(exp, got)]:>10}" for got in LEVELS))
 
-    # Ranking check: the dashboard shows each student's WORST score, so students in different
-    # situations should get clearly different numbers. We compare every pair of students whose
+    # Ranking check: students in different situations should get clearly different numbers.
+    # Uses each student's peak score (the dashboard's "peak risk"; its headline score is the latest message). We compare every pair of students whose
     # expected worst level differs and check the AI put them in the right order.
     by_student = {}
     for r in scored:
@@ -198,7 +196,7 @@ def main():
         students.append((sid, entry["expected"], sum(worst) / len(worst)))
     students.sort(key=lambda s: s[2], reverse=True)
 
-    print("\nStudent ranking (worst score per student, as on the dashboard):")
+    print("\nStudent ranking (each student's peak score - does the AI put students in the right order?):")
     for sid, expected, score in students:
         print(f"    {sid:44} expected {expected:9} score {score:5.1f}")
     right = tied = wrong = 0

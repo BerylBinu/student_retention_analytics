@@ -5,7 +5,7 @@ Checks whether Gemini's risk scores match what a human would say, using the
 
 | File | What it is |
 |---|---|
-| `answer_key.json` | Our hand-made labels for all 23 mock files + 5 tricky extra cases (28 total). Never uploaded to S3. |
+| `answer_key.json` | Our hand-made labels for all 26 mock files (including 3 Malay / Manglish live-demo messages) + 5 tricky extra cases (31 total). Never uploaded to Cloud Storage. |
 | `extra_cases/` | 5 hard cases that keyword tools get wrong: sarcasm, angry-but-fine, Malay/English mix, a prompt-injection attempt, and a routine message full of money words. |
 | `run_eval.py` | Runs every case through Gemini and prints the accuracy. |
 | `results/latest.json` | Full output of the last run (created when you run it). |
@@ -26,8 +26,8 @@ export GEMINI_API_KEY="paste-your-key-here"
 python3 eval/run_eval.py
 ```
 
-Takes about 3 minutes (5 s pause between calls for the free-tier rate limit).
-Useful options: `--only x0` (just the tricky cases), `--runs 3` (check the AI gives the same answer every time).
+Takes about 3 minutes per run (5 s pause between calls for the free-tier rate limit).
+Useful options: `--only x0` (just the tricky cases), `--only manglish` or `--only malay` (the mixed-language demo messages), `--runs 3` (check the AI gives the same answer every time), `--show` (print Gemini's summary and quoted evidence), `--prompt FILE` (test a proposed prompt without touching `src/processor/app.py`).
 
 ## What the numbers mean
 

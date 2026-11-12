@@ -251,6 +251,33 @@ Aisyah""")),
     ("chen_positive", moodle(78010, "TP072210", when(11, 5, 18, 0), "Software Engineering", "Find a group",
           "Found a group, thank you!", "<p>Thank you to the peer mentor programme, I joined the Chinese "
           "students' society and found a group for SE. Feeling much better now.</p>")),
+
+    # Malay and mixed-language (Manglish) messages: show Gemini reading how Malaysian students actually write.
+    # Formal Malay, slang with real distress, and slang with good news (should NOT be flagged).
+    ("nurul_malay_deferment", email("TP066540", when(11, 9, 22, 10), "programme.leader@uni.example",
+          "Permohonan penangguhan pengajian",
+          """Assalamualaikum Dr,
+
+Saya ingin memaklumkan bahawa keadaan ayah saya semakin teruk selepas strok bulan lepas. Doktor kata
+ayah perlu dijaga sepenuh masa, dan mak tidak mampu uruskan kedai seorang diri. Sebagai anak sulung,
+saya rasa saya terpaksa berhenti belajar dulu untuk bantu keluarga di Kota Bharu.
+
+Boleh Dr maklumkan prosedur untuk menangguhkan pengajian semester ini? Adakah saya masih perlu
+bayar yuran penuh?
+
+Terima kasih.
+Nurul Izzah""")),
+    ("daniel_manglish_commute", moodle(77490, "TP067321", when(11, 10, 9, 5), "Database Systems", "Attendance",
+          "KTM delay again lah", "<p>Aiyo KTM delay again today, 3rd time this week miss the 8:30 class liao. "
+          "From Klang to campus already 2 hours one way, today the train stuck at Subang 40 minutes somemore. "
+          "Attendance now 68% d, if kena bar from final exam confirm habis. Hostel still full ah? Can apply "
+          "back or not?</p>")),
+    ("kevin_manglish_positive", chatbot("cb-56110", "TP072876", when(11, 10, 20, 15), [
+        ("student", "hi just want to say thank you ah, IT helpdesk settled the internet problem already"),
+        ("bot", "That's great to hear! Is there anything else I can help with?"),
+        ("student", "no need la, the data plan subsidy also approved d. now can join all online class from "
+                    "Semenyih no problem, steady 👍"),
+    ])),
 ]
 
 

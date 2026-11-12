@@ -1,0 +1,24 @@
+{
+  "source": "campus_assistant_bot",
+  "session": "cb-56110",
+  "locale": "en-MY",
+  "messages": [
+    {
+      "from": "student",
+      "ts": "2026-11-10T20:15:00+08:00",
+      "text": "hi just want to say thank you ah, IT helpdesk settled the internet problem already",
+      "sid": "TP072876"
+    },
+    {
+      "from": "bot",
+      "ts": "2026-11-10T20:15:40+08:00",
+      "text": "That's great to hear! Is there anything else I can help with?"
+    },
+    {
+      "from": "student",
+      "ts": "2026-11-10T20:16:20+08:00",
+      "text": "no need la, the data plan subsidy also approved d. now can join all online class from Semenyih no problem, steady 👍",
+      "sid": "TP072876"
+    }
+  ]
+}
