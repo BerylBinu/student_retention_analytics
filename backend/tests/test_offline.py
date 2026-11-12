@@ -258,6 +258,7 @@ class ProcessorTests(unittest.TestCase):
 class ApiTests(unittest.TestCase):
     def setUp(self):
         docs().clear()
+        FAKE_DB.collection(api.CASES_COLLECTION).docs.clear()
         FAKE_STORAGE.objects.clear()
         api.os.environ["ADMIN_TOKEN"] = "secret-token"
         rows = [
@@ -354,8 +355,59 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": "wrong"})[0], 403)
         status, body = self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": "secret-token"})
         self.assertEqual(status, 200)
-        self.assertEqual(body, {"deleted": 1, "remaining": 4})
+        self.assertEqual(body, {"deleted": 1, "remaining": 4, "cases_cleared": 0})
         self.assertNotIn("live1", docs())
+
+    def cases(self):
+        return FAKE_DB.collection(api.CASES_COLLECTION).docs
+
+    def test_case_defaults_to_open(self):
+        self.cases().clear()
+        status, body = self.call("GET", "/students")
+        priya = body["items"][0]
+        self.assertEqual(priya["case_status"], "OPEN")
+        self.assertTrue(priya["needs_follow_up"])
+        self.assertEqual(self.call("GET", "/stats")[1]["awaiting_follow_up"], 2)  # Priya (critical) + Aisyah (high)
+
+    def test_update_case_and_history(self):
+        self.cases().clear()
+        status, body = self.call("POST", "/students/tp070455/case", body=json.dumps({"status": "contacted", "note": "Called, meeting Friday"}))
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "CONTACTED")
+        self.call("POST", "/students/TP070455/case", body=json.dumps({"status": "RESOLVED", "note": "Referred to counselling"}))
+        detail = self.call("GET", "/students/TP070455")[1]
+        self.assertEqual(detail["case_status"], "RESOLVED")
+        self.assertEqual(detail["case_note"], "Referred to counselling")
+        self.assertFalse(detail["needs_follow_up"])
+        self.assertEqual([h["status"] for h in detail["case_history"]], ["RESOLVED", "CONTACTED"])  # newest first
+        self.assertEqual(detail["current_risk_level"], "CRITICAL")  # the AI's score is never changed by a counsellor
+        self.assertEqual(self.call("GET", "/stats")[1]["awaiting_follow_up"], 1)
+
+    def test_update_case_validation(self):
+        self.cases().clear()
+        self.assertEqual(self.call("POST", "/students/TP070455/case", body=json.dumps({"status": "DONE"}))[0], 400)
+        self.assertEqual(self.call("POST", "/students/TP070455/case", body="not json")[0], 400)
+        self.assertEqual(self.call("POST", "/students/TP070455/case", body=json.dumps({"status": "OPEN", "note": "x" * 501}))[0], 400)
+        self.assertEqual(self.call("POST", "/students/TP000000/case", body=json.dumps({"status": "OPEN"}))[0], 404)
+        self.assertEqual(self.cases(), {})
+
+    def test_new_message_after_follow_up_reopens(self):
+        self.cases().clear()
+        self.call("POST", "/students/TP071234/case", body=json.dumps({"status": "RESOLVED"}))
+        self.assertFalse(self.call("GET", "/students/TP071234")[1]["needs_follow_up"])
+        self.add_row("live2", "TP071234", 80, "CRITICAL", "2026-11-12T10:00:00Z", live=True)
+        docs()["live2"]["processed_at"] = "2999-01-01T00:00:00Z"  # analysed after the counsellor's update
+        detail = self.call("GET", "/students/TP071234")[1]
+        self.assertTrue(detail["case_new_message"])
+        self.assertTrue(detail["needs_follow_up"])
+        self.assertEqual(detail["case_status"], "RESOLVED")
+
+    def test_reset_demo_clears_cases(self):
+        self.cases().clear()
+        self.call("POST", "/students/TP071234/case", body=json.dumps({"status": "CONTACTED"}))
+        status, body = self.call("POST", "/admin/reset-demo", headers={"X-Admin-Token": "secret-token"})
+        self.assertEqual(body["cases_cleared"], 1)
+        self.assertEqual(self.cases(), {})
 
     def test_reset_demo_disabled_without_configured_token(self):
         api.os.environ.pop("ADMIN_TOKEN", None)

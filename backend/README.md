@@ -45,7 +45,7 @@ backend/
 │   │   └── requirements.txt   # Google Cloud libraries the function needs
 │   └── api/
 │       ├── main.py            # entry point for web requests (CORS, JSON)
-│       ├── app.py             # routes: /students, /stats, /insights, /ingest, /admin/reset-demo
+│       ├── app.py             # routes: /students, /stats, /insights, /ingest, /students/{id}/case, /admin/reset-demo
 │       └── requirements.txt
 ├── mock_data/                 # fictional student messages in 4 messy formats
 ├── eval/                      # Person B's answer key and accuracy test for the Gemini prompt
@@ -319,14 +319,15 @@ gcloud run services describe retention-dashboard --region=$REGION --format="valu
 **Sending live messages:** use the dashboard's **Live demo** page. Each result takes 10-60 seconds because of the
 free-tier pacing. **Don't press Send twice** — the backend retries on its own, and a second press creates a duplicate.
 
-**Reset to the original 20 messages** (deletes only messages sent from the Live demo page):
+**Reset to the original 20 messages** (deletes only messages sent from the Live demo page, plus every
+counsellor follow-up record, so all students start as "Not contacted"):
 
 ```
 $ADMIN = (gcloud secrets versions access latest --secret=admin-token | Out-String).Trim()
 Invoke-RestMethod -Method Post -Uri "$API/admin/reset-demo" -Headers @{ "X-Admin-Token" = $ADMIN }
 ```
 
-Expected: `deleted: 3  remaining: 20`. Then refresh the dashboard page (it has no caching).
+Expected: `deleted: 3  remaining: 20  cases_cleared: 2` (numbers depend on what you sent and saved). Then refresh the dashboard page (it has no caching).
 
 ---
 
@@ -360,11 +361,19 @@ NEXT_PUBLIC_API_BASE_URL=https://retention-api-xxxxxxxxxx.asia-southeast1.run.ap
 |---|---|---|
 | GET | `/health` | "Is the backend up?" |
 | GET | `/stats` | KPI cards and charts (risk distribution, stressors, daily trend) |
-| GET | `/students` | The at-risk student table, highest risk first |
-| GET | `/students/{student_id}` | Student detail page with full timeline |
+| GET | `/students` | The at-risk student table, highest risk first (each row includes the follow-up fields below) |
+| GET | `/students/{student_id}` | Student detail page with full timeline and `case_history` (newest first) |
+| POST | `/students/{student_id}/case` | Counsellor follow-up. Body: `{"status": "OPEN"\|"CONTACTED"\|"RESOLVED", "note": "max 500 chars"}` → the saved case |
 | GET | `/insights?risk_level=HIGH,CRITICAL&stressor=FINANCIAL&student_id=TP071234&limit=50` | Raw signal feed (all filters optional) |
 | POST | `/ingest` | Body: `{"student_id","student_name","source","text"}` → `202 {"status":"queued","object_key":...}` |
-| POST | `/admin/reset-demo` | Header `X-Admin-Token: <admin-token secret>` → `{"deleted": n, "remaining": n}` |
+| POST | `/admin/reset-demo` | Header `X-Admin-Token: <admin-token secret>` → `{"deleted": n, "remaining": n, "cases_cleared": n}` |
+
+**Follow-up fields** on every student: `case_status` (`OPEN` until a counsellor saves one), `case_note`,
+`case_updated_at`, `case_new_message` (the student wrote again after the last update) and `needs_follow_up`
+(`OPEN`, or a new message arrived). `/stats` adds `awaiting_follow_up`: High/Critical students that need follow-up.
+Follow-ups live in their own Firestore collection (`cases`, one document per student), so a counsellor never
+changes the AI's results or risk score. In this prototype anyone with the dashboard link can save a follow-up;
+a real deployment would put the dashboard behind university sign-in (for example Identity-Aware Proxy).
 
 **Allowed values**
 

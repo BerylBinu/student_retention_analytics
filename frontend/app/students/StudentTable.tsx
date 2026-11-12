@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { label, formatDate, riskStyle, TREND_ICON, type Student } from "@/lib/api";
-import { Avatar, RiskBadge, StressorChip } from "@/components/ui";
+import { Avatar, CaseBadge, RiskBadge, StressorChip } from "@/components/ui";
 
 const FILTERS = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -11,11 +11,18 @@ export default function StudentTable({ students }: { students: Student[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("ALL");
   const [query, setQuery] = useState("");
+  const [followUpOnly, setFollowUpOnly] = useState(false);
+
+  // High / critical students nobody has acted on yet (or who wrote again after being contacted)
+  const needsFollowUp = (s: Student) =>
+    (s.current_risk_level === "HIGH" || s.current_risk_level === "CRITICAL") && (s.needs_follow_up ?? true);
+  const followUpCount = students.filter(needsFollowUp).length;
 
   const q = query.trim().toLowerCase();
   const rows = students.filter(
     (s) =>
       (filter === "ALL" || s.current_risk_level === filter) &&
+      (!followUpOnly || needsFollowUp(s)) &&
       (!q || s.student_name.toLowerCase().includes(q) || s.student_id.toLowerCase().includes(q)),
   );
 
@@ -38,6 +45,14 @@ export default function StudentTable({ students }: { students: Student[] }) {
               </button>
             );
           })}
+          <button
+            onClick={() => setFollowUpOnly(!followUpOnly)}
+            className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
+              followUpOnly ? "bg-amber-500 text-white ring-amber-500" : "bg-amber-50 text-amber-800 ring-amber-200 hover:bg-amber-100"
+            }`}
+          >
+            Needs follow-up ({followUpCount})
+          </button>
         </div>
         <input
           value={query}
@@ -48,7 +63,7 @@ export default function StudentTable({ students }: { students: Student[] }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3 font-medium">Student</th>
@@ -56,6 +71,7 @@ export default function StudentTable({ students }: { students: Student[] }) {
               <th className="px-4 py-3 font-medium">Trend</th>
               <th className="px-4 py-3 font-medium">Main stressors</th>
               <th className="px-4 py-3 font-medium">Urgency</th>
+              <th className="px-4 py-3 font-medium">Follow-up</th>
               <th className="px-4 py-3 font-medium">Last signal</th>
             </tr>
           </thead>
@@ -100,12 +116,15 @@ export default function StudentTable({ students }: { students: Student[] }) {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{label(s.highest_urgency)}</td>
+                <td className="px-4 py-3">
+                  <CaseBadge status={s.case_status} newMessage={s.case_new_message} />
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDate(s.latest_event_time)}</td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                   No students match.
                 </td>
               </tr>

@@ -261,3 +261,25 @@ export function SafetyBanner({ action }: { action?: string }) {
     </div>
   );
 }
+// Counsellor follow-up status. "New message" means the student wrote again after the last update.
+const CASE_STYLE: Record<string, string> = {
+  OPEN: "bg-slate-100 text-slate-700 ring-slate-200",
+  CONTACTED: "bg-sky-100 text-sky-800 ring-sky-200",
+  RESOLVED: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+};
+
+export function CaseBadge({ status, newMessage }: { status?: string; newMessage?: boolean }) {
+  const s = status || "OPEN";
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${CASE_STYLE[s] ?? CASE_STYLE.OPEN}`}>
+        {label(s)}
+      </span>
+      {newMessage && (
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+          New message
+        </span>
+      )}
+    </span>
+  );
+}

@@ -31,6 +31,20 @@ export interface Student {
   first_event_time: string;
   latest_event_time: string;
   sources: string[];
+  // Counsellor follow-up (stored separately from the AI results)
+  case_status?: CaseStatus;
+  case_note?: string;
+  case_updated_at?: string;
+  case_new_message?: boolean;
+  needs_follow_up?: boolean;
+}
+
+export type CaseStatus = "OPEN" | "CONTACTED" | "RESOLVED";
+
+export interface CaseEvent {
+  status: CaseStatus;
+  note: string;
+  at: string;
 }
 
 export interface Insight {
@@ -57,6 +71,7 @@ export interface Insight {
 }
 
 export interface StudentDetail extends Student {
+  case_history?: CaseEvent[];
   timeline: Insight[];
 }
 
@@ -65,6 +80,7 @@ export interface Stats {
   total_students: number;
   students_needing_attention: number;
   self_harm_alerts: number;
+  awaiting_follow_up?: number;
   average_risk_score: number;
   signals_by_risk_level: { level: RiskLevel; count: number }[];
   students_by_risk_level: { level: RiskLevel; count: number }[];
@@ -103,6 +119,9 @@ const LABELS: Record<string, string> = {
   NEUTRAL: "Neutral",
   NEGATIVE: "Negative",
   MIXED: "Mixed",
+  OPEN: "Not contacted",
+  CONTACTED: "Contacted",
+  RESOLVED: "Resolved",
 };
 
 export function label(value: string | undefined | null): string {

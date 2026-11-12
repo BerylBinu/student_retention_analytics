@@ -37,6 +37,14 @@ email never mentions risk scores, the AI or the analysed messages. Addresses use
 deployment would take the address from the university's student directory. For a possible self-harm risk, the
 button area reminds the counsellor to call or meet the student first and use email only as a follow-up.
 
+### Counsellor follow-up
+
+Each student page has a **Counsellor follow-up** card: pick **Not contacted**, **Contacted** or **Resolved**, add a
+short note and press **Save follow-up**. The last few updates are shown as a history. The student list has a
+**Follow-up** column and a **Needs follow-up** filter, which shows High and Critical students nobody has acted on yet.
+If a student sends a new message after their last update, they get a **New message** tag and go back on that list.
+Follow-ups are saved through `POST /students/{id}/case` and never change the AI's risk score. The demo reset clears them.
+
 ## Run it on your computer
 
 You need [Node.js](https://nodejs.org) (LTS version).

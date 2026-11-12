@@ -9,7 +9,8 @@ Routes (all return JSON):
     GET  /students/{student_id}   -> one student's profile plus their full timeline
     GET  /stats                   -> totals and chart-ready numbers for the dashboard
     POST /ingest                  -> drop a new raw message into the pipeline (great for the live demo)
-    POST /admin/reset-demo        -> delete live-demo messages (needs the X-Admin-Token header)
+    POST /students/{id}/case      -> counsellor follow-up: {"status": "CONTACTED", "note": "Called, meeting Fri"}
+    POST /admin/reset-demo        -> delete live-demo messages and follow-up records (needs the X-Admin-Token header)
 
 Runs as a Cloud Run function (see main.py). Data is read from Firestore; /ingest writes to the
 raw Cloud Storage bucket, which triggers the processor function. For a hackathon-sized dataset
@@ -28,10 +29,14 @@ logger = logging.getLogger("api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
 FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION", "insights")
+CASES_COLLECTION = os.environ.get("CASES_COLLECTION", "cases")
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "")
 INGEST_PREFIX = "incoming/live/"
 MAX_SCAN_ITEMS = 5000
 MAX_INGEST_CHARS = 10_000
+CASE_STATUSES = ("OPEN", "CONTACTED", "RESOLVED")
+MAX_NOTE_CHARS = 500
+MAX_CASE_HISTORY = 20
 
 RISK_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 URGENCY_ORDER = {"ROUTINE": 0, "FOLLOW_UP_THIS_WEEK": 1, "CONTACT_WITHIN_24H": 2, "IMMEDIATE": 3}
@@ -77,6 +82,8 @@ def handle_request(method, path, params=None, body_text="", headers=None):
             return 200, list_students()
         if method == "GET" and path.startswith("/students/") and path.count("/") == 2:
             return get_student(path.split("/")[2])
+        if method == "POST" and path.startswith("/students/") and path.endswith("/case") and path.count("/") == 3:
+            return update_case(path.split("/")[2], body_text)
         if method == "GET" and path == "/stats":
             return 200, get_stats()
         if method == "POST" and path == "/ingest":
@@ -110,7 +117,11 @@ def list_insights(params):
 
 
 def list_students():
-    students = [summarise_student(sid, records) for sid, records in group_by_student(scan_all()).items()]
+    cases = load_cases()
+    students = [
+        attach_case(summarise_student(sid, records), records, cases.get(sid))
+        for sid, records in group_by_student(scan_all()).items()
+    ]
     students.sort(key=lambda s: (s["current_risk_score"], s["latest_event_time"]), reverse=True)
     return {"count": len(students), "items": students}
 
@@ -122,14 +133,18 @@ def get_student(student_id):
     records = [i for i in scan_all() if i.get("student_id") == student_id]
     if not records:
         return 404, {"error": f"No records for student {student_id}"}
-    profile = summarise_student(student_id, records)
+    case = load_cases().get(student_id)
+    profile = attach_case(summarise_student(student_id, records), records, case)
+    profile["case_history"] = list(reversed((case or {}).get("history") or []))  # newest first
     profile["timeline"] = sorted(records, key=lambda r: r.get("event_time", ""))
     return 200, profile
 
 
 def get_stats():
     items = scan_all()
-    students = [summarise_student(sid, recs) for sid, recs in group_by_student(items).items()]
+    cases = load_cases()
+    with_records = [(sid, recs, summarise_student(sid, recs)) for sid, recs in group_by_student(items).items()]
+    students = [s for _, _, s in with_records]
 
     daily = defaultdict(lambda: {"signals": 0, "risk_total": 0, "high_or_critical": 0})
     for item in items:
@@ -154,6 +169,12 @@ def get_stats():
         "total_students": len(students),
         "students_needing_attention": sum(1 for s in students if s["current_risk_level"] in ("HIGH", "CRITICAL")),
         "self_harm_alerts": sum(1 for s in students if s["self_harm_flag"]),
+        # High / critical students nobody has contacted yet (or who wrote again after being contacted).
+        "awaiting_follow_up": sum(
+            1
+            for s in (attach_case(s, recs, cases.get(sid)) for sid, recs, s in with_records)
+            if s["current_risk_level"] in ("HIGH", "CRITICAL") and s["needs_follow_up"]
+        ),
         "average_risk_score": round(sum(i.get("risk_score", 0) for i in items) / len(items), 1) if items else 0,
         "signals_by_risk_level": counts_in_order((i.get("risk_level") for i in items), RISK_ORDER),
         "students_by_risk_level": counts_in_order((s["current_risk_level"] for s in students), RISK_ORDER),
@@ -204,8 +225,46 @@ def ingest(body_text):
     return 202, {"status": "queued", "object_key": key, "s3_key": key, "hint": "Poll GET /insights in ~10 seconds"}
 
 
+def update_case(student_id, body_text):
+    """Record a counsellor's follow-up for one student: status (OPEN / CONTACTED / RESOLVED) and a short note.
+
+    Stored in its own Firestore collection (one document per student), so the AI results are never
+    changed by a counsellor and the risk score always stays the AI's own assessment.
+    """
+    student_id = student_id.strip().upper()
+    try:
+        body = json.loads(body_text) if body_text else {}
+    except json.JSONDecodeError:
+        return 400, {"error": "Body must be JSON, e.g. {\"status\": \"CONTACTED\", \"note\": \"Called, meeting Friday\"}"}
+    if not isinstance(body, dict):
+        return 400, {"error": "Body must be a JSON object"}
+
+    status = str(body.get("status") or "").strip().upper()
+    if status not in CASE_STATUSES:
+        return 400, {"error": f"Field 'status' must be one of {', '.join(CASE_STATUSES)}"}
+    note = str(body.get("note") or "").strip()
+    if len(note) > MAX_NOTE_CHARS:
+        return 400, {"error": f"Field 'note' must be at most {MAX_NOTE_CHARS} characters"}
+    if not any(i.get("student_id") == student_id for i in scan_all()):
+        return 404, {"error": f"No records for student {student_id}"}
+
+    previous = load_cases().get(student_id) or {}
+    stamp = now_iso()
+    history = (previous.get("history") or []) + [{"status": status, "note": note, "at": stamp}]
+    case = {
+        "student_id": student_id,
+        "status": status,
+        "note": note,
+        "updated_at": stamp,
+        "history": history[-MAX_CASE_HISTORY:],
+    }
+    firestore_client().collection(CASES_COLLECTION).document(student_id).set(case)
+    logger.info("Case %s -> %s", student_id, status)
+    return 200, case
+
+
 def reset_demo(token):
-    """Delete messages sent through the Live demo page, keeping the original data.
+    """Delete messages sent through the Live demo page and all follow-up records, keeping the original data.
 
     Protected by a secret token (stored in Secret Manager as admin-token), because the API is public.
     """
@@ -220,8 +279,14 @@ def reset_demo(token):
             collection.document(snapshot.id).delete()
             deleted += 1
     remaining = sum(1 for _ in collection.stream())
-    logger.info("Demo reset: deleted %d live message(s), %d remain", deleted, remaining)
-    return 200, {"deleted": deleted, "remaining": remaining}
+
+    cases = firestore_client().collection(CASES_COLLECTION)
+    cases_cleared = 0
+    for snapshot in cases.stream():
+        cases.document(snapshot.id).delete()
+        cases_cleared += 1
+    logger.info("Demo reset: deleted %d live message(s), %d remain, %d case(s) cleared", deleted, remaining, cases_cleared)
+    return 200, {"deleted": deleted, "remaining": remaining, "cases_cleared": cases_cleared}
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +300,35 @@ def scan_all():
         if len(items) >= MAX_SCAN_ITEMS:
             break
     return items
+
+
+def load_cases():
+    """Every counsellor follow-up record, keyed by student ID (one small document per student)."""
+    return {snap.id: (snap.to_dict() or {}) for snap in firestore_client().collection(CASES_COLLECTION).stream()}
+
+
+def attach_case(profile, records, case):
+    """Add the follow-up fields to a student profile.
+
+    needs_follow_up is True when nobody has acted yet, or when the student sent a new message after
+    the last update (so a "Resolved" student who writes in again goes back on the counsellor's list).
+    Messages are compared by when they were analysed, so this works the same for live and historical data.
+    """
+    case = case or {}
+    status = case.get("status") or "OPEN"
+    updated_at = case.get("updated_at") or ""
+    newest = max((r.get("processed_at") or r.get("event_time") or "") for r in records) if records else ""
+    new_message = bool(updated_at) and newest > updated_at
+    profile.update(
+        {
+            "case_status": status,
+            "case_note": case.get("note") or "",
+            "case_updated_at": updated_at,
+            "case_new_message": new_message,
+            "needs_follow_up": status == "OPEN" or new_message,
+        }
+    )
+    return profile
 
 
 def group_by_student(items):

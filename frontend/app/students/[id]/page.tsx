@@ -2,6 +2,7 @@ import Link from "next/link";
 import { api, label, formatDate, formatDateTime, riskStyle, TREND_ICON, type StudentDetail } from "@/lib/api";
 import { Avatar, riskHex, Card, Chip, ErrorBox, RiskBadge, SafetyBanner, StressorChip } from "@/components/ui";
 import { EmailStudent } from "@/components/EmailStudent";
+import { CaseStatus } from "@/components/CaseStatus";
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -83,6 +84,18 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           <RiskChart points={timeline.map((t) => ({ score: t.risk_score, date: t.event_time, level: t.risk_level }))} />
         </Card>
       </div>
+
+      <Card title="Counsellor follow-up" subtitle="Record what you did. This never changes the AI's risk score.">
+        <CaseStatus
+          key={s.case_updated_at || "none"}
+          studentId={s.student_id}
+          status={s.case_status ?? "OPEN"}
+          note={s.case_note ?? ""}
+          updatedAt={s.case_updated_at}
+          newMessage={s.case_new_message}
+          history={s.case_history ?? []}
+        />
+      </Card>
 
       {/* Timeline */}
       <Card title="Message timeline (newest first)">
