@@ -31,6 +31,31 @@ const PRESETS = [
     text:
       "Student: is there a way to just stop everything\nBot: I'm not sure I understand. Do you mean withdraw from your programme?\nStudent: i dont know. i feel like nothing i do matters and i don't see the point of anything anymore",
   },
+  // Malay and Manglish: the AI reads how Malaysian students actually write (no translation step).
+  {
+    name: "Nurul: deferring (Malay)",
+    student_id: "TP066540",
+    student_name: "Nurul Izzah Kamal",
+    source: "EMAIL",
+    text:
+      "Assalamualaikum Dr, saya ingin memaklumkan bahawa keadaan ayah saya semakin teruk selepas strok bulan lepas. Doktor kata ayah perlu dijaga sepenuh masa, dan mak tidak mampu uruskan kedai seorang diri. Sebagai anak sulung, saya rasa saya terpaksa berhenti belajar dulu untuk bantu keluarga di Kota Bharu. Boleh Dr maklumkan prosedur untuk menangguhkan pengajian semester ini? Adakah saya masih perlu bayar yuran penuh? Terima kasih. Nurul Izzah",
+  },
+  {
+    name: "Daniel: KTM delay (Manglish)",
+    student_id: "TP067321",
+    student_name: "Daniel Wong",
+    source: "LMS_FORUM",
+    text:
+      "Aiyo KTM delay again today, 3rd time this week miss the 8:30 class liao. From Klang to campus already 2 hours one way, today the train stuck at Subang 40 minutes somemore. Attendance now 68% d, if kena bar from final exam confirm habis. Hostel still full ah? Can apply back or not?",
+  },
+  {
+    name: "Kevin: sorted (Manglish)",
+    student_id: "TP072876",
+    student_name: "Kevin Raj",
+    source: "CHATBOT",
+    text:
+      "Student: hi just want to say thank you ah, IT helpdesk settled the internet problem already\nBot: That's great to hear! Is there anything else I can help with?\nStudent: no need la, the data plan subsidy also approved d. now can join all online class from Semenyih no problem, steady 👍",
+  },
 ];
 
 const SOURCES = ["EMAIL", "LMS_FORUM", "SUPPORT_TICKET", "CHATBOT", "OTHER"];

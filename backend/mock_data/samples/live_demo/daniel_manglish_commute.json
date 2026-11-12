@@ -1,0 +1,18 @@
+{
+  "platform": "moodle",
+  "course": "Database Systems",
+  "forum": "Attendance",
+  "discussion": {
+    "id": 7749,
+    "name": "KTM delay again lah"
+  },
+  "post": {
+    "id": 77490,
+    "userid": "TP067321",
+    "userfullname": "Daniel Wong",
+    "created": 1794272700,
+    "subject": "KTM delay again lah",
+    "message": "<p>Aiyo KTM delay again today, 3rd time this week miss the 8:30 class liao. From Klang to campus already 2 hours one way, today the train stuck at Subang 40 minutes somemore. Attendance now 68% d, if kena bar from final exam confirm habis. Hostel still full ah? Can apply back or not?</p>",
+    "messageformat": 1
+  }
+}

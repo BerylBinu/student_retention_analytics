@@ -21,7 +21,7 @@ A Next.js dashboard that shows the results of the Student Retention Analytics En
 2. Cloud Storage triggers the processing Cloud Run function (through Eventarc), which asks Gemini to analyse it and stores the result in Firestore.
 3. The page checks `GET /insights` every 4 seconds until the new result appears (usually 10 to 60 seconds), then shows it.
 
-Three ready-made messages (Aisyah, Chen Wei and Priya) match the files in `backend/mock_data/samples/live_demo`.
+Six ready-made messages match the files in `backend/mock_data/samples/live_demo`: Aisyah, Chen Wei and Priya (English), plus Nurul (Malay), Daniel and Kevin (Manglish) to show the AI reading mixed-language messages.
 
 ### Handling self-harm signals
 
