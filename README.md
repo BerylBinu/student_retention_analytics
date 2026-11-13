@@ -12,7 +12,6 @@ evidence-backed **At-Risk Student Dashboard** — built entirely on **Google Clo
 |---|---|
 | **Live dashboard** | https://retention-dashboard-353252835497.asia-southeast1.run.app/ |
 | **Demo video** | https://drive.google.com/drive/folders/1Gk0Uh4KJx-Z-ECubtAW31QCMd6Jwy4gu?usp=sharing |
-| **Pitch deck** | _add the PDF link here_ |
 
 ## How it works
 
